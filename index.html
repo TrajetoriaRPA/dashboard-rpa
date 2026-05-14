@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indicadores de Projetos - RPA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 100: '#e6f0fa', 500: '#0055A4', 900: '#003366' },
+                        danger: { 500: '#f97316', 600: '#dc2626' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .tab-active { border-bottom: 2px solid #003366; color: #003366; font-weight: 600; }
+        .tab-inactive { color: #64748b; border-bottom: 2px solid transparent; }
+        .tab-inactive:hover { color: #003366; }
+        .pdf-mode { width: 1400px !important; padding: 30px !important; background: white !important; }
+        .pdf-mode .no-print { display: none !important; }
+        .pdf-mode .shadow-md { box-shadow: none !important; border: 1px solid #e2e8f0; }
+        .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+        .custom-table th { background-color: #003366; color: white; text-transform: uppercase; font-size: 0.75rem; padding: 10px; border: 1px solid #004080; }
+        .custom-table td { border: 1px solid #e2e8f0; padding: 8px; text-align: center; font-size: 0.85rem; }
+        .loading-overlay { position: fixed; inset: 0; background: rgba(0,51,102,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: white; gap: 16px; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="text-sm font-medium">Carregando dados do Google Sheets...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-brand-900 text-white shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-4">
+                    <div class="bg-white p-1 rounded">
+                        <i data-lucide="layout-dashboard" class="w-8 h-8 text-brand-900"></i>
+                    </div>
+                    <span class="font-semibold text-xl hidden sm:block">Gestão de Projetos e Produtividade</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="reloadData()" class="flex items-center gap-2 bg-brand-500 px-4 py-2 rounded-md font-medium hover:bg-brand-400 transition">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+                    </button>
+                    <button onclick="exportToPDF()" class="flex items-center gap-2 bg-white text-brand-900 px-4 py-2 rounded-md font-medium hover:bg-brand-100 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i> Exportar PDF
+                    </button>
+                    <button onclick="openModal('configModal')" class="flex items-center gap-2 bg-brand-500 px-4 py-2 rounded-md font-medium hover:bg-brand-400 transition">
+                        <i data-lucide="settings" class="w-4 h-4"></i> Configurações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Controles -->
+    <section class="bg-white border-b border-slate-200 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-wrap gap-6 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Período</label>
+                <div class="flex gap-2 items-center">
+                    <input type="date" id="filterStartDate" class="border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="applyFilters()">
+                    <span class="text-slate-500">até</span>
+                    <input type="date" id="filterEndDate" class="border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="applyFilters()">
+                </div>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Filtro de Projeto</label>
+                <select id="filterProject" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="applyFilters()">
+                    <option value="ALL">Todos os Ativos</option>
+                </select>
+            </div>
+            <div class="text-xs text-slate-400 italic" id="lastUpdateInfo">Aguardando dados...</div>
+        </div>
+    </section>
+
+    <!-- Conteúdo Principal -->
+    <main id="dashboardContent" class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
+        <!-- Abas -->
+        <div class="border-b border-slate-200 mb-8 no-print">
+            <nav class="-mb-px flex space-x-8">
+                <button onclick="switchTab('operacional')" id="tab-operacional" class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4"></i> Visão Operacional
+                </button>
+                <button onclick="switchTab('gerencial')" id="tab-gerencial" class="tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4"></i> Visão Gerencial (Financeiro)
+                </button>
+                <button onclick="switchTab('produtividade')" id="tab-produtividade" class="tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-4 h-4"></i> Produtividade por Desenvolvedor
+                </button>
+            </nav>
+        </div>
+
+        <!-- Estado Vazio -->
+        <div id="emptyState" class="text-center py-20 bg-white rounded-lg shadow-sm border border-slate-200">
+            <i data-lucide="bar-chart-3" class="w-16 h-16 text-slate-300 mx-auto mb-4"></i>
+            <h3 class="text-lg font-medium text-slate-900">Nenhum dado carregado</h3>
+            <p class="mt-1 text-sm text-slate-500">Os dados serão carregados automaticamente do Google Sheets.</p>
+        </div>
+
+        <!-- OPERACIONAL -->
+        <div id="view-operacional" class="hidden space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-500 break-inside-avoid">
+                    <p class="text-sm font-medium text-slate-500">Horas Contratadas (Ativos)</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalBudget">0h</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-900 break-inside-avoid">
+                    <p class="text-sm font-medium text-slate-500">Horas Apontadas</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalConsumed">0h</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-slate-300 break-inside-avoid">
+                    <p class="text-sm font-medium text-slate-500">Saldo Global</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalBalance">0h</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
+                    <h3 class="text-base font-semibold text-slate-800 mb-4">Horas: Consumido vs Contratado</h3>
+                    <div class="h-64"><canvas id="chartProjectHours"></canvas></div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
+                    <h3 class="text-base font-semibold text-slate-800 mb-4">Evolução Mensal</h3>
+                    <div class="h-64"><canvas id="chartMonthlyEvolution"></canvas></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h3 class="text-base font-semibold text-slate-800">Acompanhamento de Saldo por Projeto</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Projeto</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Contratado</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Consumido</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Saldo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Observação</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBudgetBody" class="bg-white divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- GERENCIAL -->
+        <div id="view-gerencial" class="hidden space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-500 break-inside-avoid">
+                    <p class="text-sm font-medium text-slate-500">Receita Total Contratada</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalRevenue">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-danger-500 break-inside-avoid">
+                    <p class="text-sm font-medium text-slate-500">Custo Consumido</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalCost">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-900 break-inside-avoid">
+                    <p class="text-sm font-medium text-slate-500">Margem / Saldo Atual</p>
+                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalMargin">R$ 0,00</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
+                    <h3 class="text-base font-semibold text-slate-800 mb-4">Rentabilidade por Projeto (R$)</h3>
+                    <div class="h-64"><canvas id="chartFinancialProfitability"></canvas></div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
+                    <h3 class="text-base font-semibold text-slate-800 mb-4">Evolução do Custo Acumulado</h3>
+                    <div class="h-64"><canvas id="chartFinancialBurndown"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRODUTIVIDADE -->
+        <div id="view-produtividade" class="hidden space-y-8">
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden break-inside-avoid">
+                <div class="grid grid-cols-2 md:grid-cols-5 divide-x divide-slate-100 text-center uppercase">
+                    <div class="p-4"><p class="text-[10px] font-bold text-slate-500">Meta</p><p class="text-lg font-bold text-brand-900" id="metaDisplay">100%</p></div>
+                    <div class="p-4"><p class="text-[10px] font-bold text-slate-500">Data Apuração</p><p class="text-lg font-bold text-brand-900" id="apurationDateDisplay">-</p></div>
+                    <div class="p-4"><p class="text-[10px] font-bold text-slate-500">Dias Úteis</p><p class="text-lg font-bold text-brand-900" id="workingDaysDisplay">0</p></div>
+                    <div class="p-4"><p class="text-[10px] font-bold text-slate-500">Horas Úteis / Dia</p><p class="text-lg font-bold text-brand-900" id="workingHoursDisplay">0,0</p></div>
+                    <div class="p-4 bg-brand-900 text-white"><p class="text-[10px] font-bold opacity-80">Total Horas Esperadas</p><p class="text-lg font-bold" id="expectedHoursDisplay">0</p></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full custom-table">
+                        <thead>
+                            <tr>
+                                <th>Quem</th><th>Horas Apontadas</th><th>Data</th><th>Efetividade</th>
+                                <th>Observação</th><th>Ausência</th><th>Horas Adm.</th><th>Horas Proj.</th><th>% Proj.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableProdutividadeBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="devBlocksContainer" class="space-y-12"></div>
+        </div>
+    </main>
+
+    <!-- Modal Configurações -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-slate-900">Configurações Gerais</h3>
+                <button onclick="closeModal('configModal')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="bg-slate-50 px-6 border-b border-slate-200">
+                <nav class="flex space-x-6">
+                    <button onclick="switchConfigTab('devs')" id="cfg-tab-devs" class="py-3 text-sm font-medium border-b-2 border-brand-900 text-brand-900">Desenvolvedores</button>
+                    <button onclick="switchConfigTab('metas')" id="cfg-tab-metas" class="py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-brand-900">Metas & Calendário</button>
+                </nav>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="cfg-view-devs" class="space-y-4">
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="newDevName" placeholder="Nome do Desenvolvedor" class="w-full border border-slate-300 rounded-md px-3 py-2">
+                        <button onclick="addDeveloper()" class="bg-brand-500 text-white px-6 py-2 rounded-md font-medium">Adicionar</button>
+                    </div>
+                    <ul id="devList" class="grid grid-cols-2 md:grid-cols-3 gap-3"></ul>
+                </div>
+                <div id="cfg-view-metas" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Meta Global (%)</label><input type="number" id="metaValue" class="w-full border border-slate-300 rounded-md px-3 py-2" value="100"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Data de Apuração</label><input type="date" id="apurationDate" class="w-full border border-slate-300 rounded-md px-3 py-2"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Dias Úteis no Período</label><input type="number" id="workingDays" class="w-full border border-slate-300 rounded-md px-3 py-2" value="22"></div>
+                    <div><label class="block text-sm font-medium text-slate-700 mb-1">Horas Úteis por Dia</label><input type="number" step="0.1" id="workingHours" class="w-full border border-slate-300 rounded-md px-3 py-2" value="8.8"></div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
+                <button onclick="closeModal('configModal')" class="px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-700">Cancelar</button>
+                <button onclick="saveConfigurations()" class="px-4 py-2 bg-brand-900 text-white rounded-md text-sm font-medium">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // =============================================
+        // URLs DO GOOGLE SHEETS
+        // =============================================
+        const SHEET_DADOS_BRUTOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQPHxzUbk4_mGNoG_8gsyLnDHBZWoHni6eJbs_JW5LkVDjzbk8ZpUtfADtq_sm3UwgY5VSxogGc_5kI/pub?gid=0&single=true&output=csv";
+        const SHEET_CONFIG_HTML  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQPHxzUbk4_mGNoG_8gsyLnDHBZWoHni6eJbs_JW5LkVDjzbk8ZpUtfADtq_sm3UwgY5VSxogGc_5kI/pub?gid=1693822247&single=true&output=csv";
+
+        let state = {
+            rawRows: [],
+            filteredRows: [],
+            projects: new Set(),
+            developers: [],
+            projectConfigs: {},
+            meta: { value: 100, date: '', days: 22, hoursPerDay: 8.8 },
+            chartInstances: {}
+        };
+
+        // =============================================
+        // INICIALIZAÇÃO E CARGA DE DADOS
+        // =============================================
+        async function init() {
+            state.developers = JSON.parse(localStorage.getItem('dash_devs')) || [];
+            state.meta = JSON.parse(localStorage.getItem('dash_meta')) || { value: 100, date: '', days: 22, hoursPerDay: 8.8 };
+
+            document.getElementById('metaValue').value = state.meta.value;
+            document.getElementById('apurationDate').value = state.meta.date;
+            document.getElementById('workingDays').value = state.meta.days;
+            document.getElementById('workingHours').value = state.meta.hoursPerDay;
+
+            renderDevListInModal();
+            await loadAllData();
+        }
+
+        async function loadAllData() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                const [dadosText, configText] = await Promise.all([
+                    fetchCSV(SHEET_DADOS_BRUTOS),
+                    fetchCSV(SHEET_CONFIG_HTML)
+                ]);
+
+                processConfigData(configText);
+                processDadosBrutos(dadosText);
+
+                const now = new Date().toLocaleString('pt-BR');
+                document.getElementById('lastUpdateInfo').textContent = `Última atualização: ${now}`;
+            } catch (err) {
+                console.error("Erro ao carregar dados:", err);
+                document.getElementById('lastUpdateInfo').textContent = 'Erro ao carregar dados. Verifique o console.';
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function fetchCSV(url) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(url, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results),
+                    error: (err) => reject(err)
+                });
+            });
+        }
+
+        async function reloadData() {
+            await loadAllData();
+        }
+
+        // =============================================
+        // PROCESSA ABA CONFIG HTML
+        // Colunas: Ativo, Projeto, Budget, Vendido R$, Custo/h, Obs., Data, Infra, Licença, Receita de Licença, Receita Infra
+        // =============================================
+        function processConfigData(results) {
+            const localConfigs = JSON.parse(localStorage.getItem('dash_proj_configs')) || {};
+
+            results.data.forEach(row => {
+                const nome = (row['Projeto'] || '').trim();
+                if (!nome) return;
+
+                const ativoStr = (row['Ativo'] || '').trim().toLowerCase();
+                const ativo = ativoStr === 'sim' || ativoStr === 'true' || ativoStr === '1' || ativoStr === 'x';
+
+                state.projectConfigs[nome] = {
+                    active: localConfigs[nome]?.active ?? ativo,
+                    budgetHours: parseFloat((row['Budget'] || '0').replace(',', '.')) || 0,
+                    soldValue: parseFloat((row['Vendido R$'] || '0').replace(/[R$\s.]/g, '').replace(',', '.')) || 0,
+                    hourlyRate: parseFloat((row['Custo/h'] || '0').replace(',', '.')) || 0,
+                    obs: row['Obs.'] || '',
+                    obsDate: row['Data'] || '',
+                    infra: parseFloat((row['Infra'] || '0').replace(',', '.')) || 0,
+                    licenca: parseFloat((row['Licença'] || '0').replace(',', '.')) || 0,
+                    receitaLicenca: parseFloat((row['Receita de Licença'] || '0').replace(',', '.')) || 0,
+                    receitaInfra: parseFloat((row['Receita Infra'] || '0').replace(',', '.')) || 0
+                };
+            });
+        }
+
+        // =============================================
+        // PROCESSA ABA DADOS_BRUTOS
+        // Colunas: Projeto, Tarefa, Data, Horas (Dec), Usuário, Comentário
+        // =============================================
+        function processDadosBrutos(results) {
+            state.rawRows = results.data
+                .filter(row => (row['Projeto'] || '').trim() && (row['Data'] || '').trim())
+                .map(row => {
+                    const hStr = String(row['Horas (Dec)'] || '0').replace(',', '.');
+                    const h = parseFloat(hStr) || 0;
+                    const proj = (row['Projeto'] || '').trim();
+                    const data = (row['Data'] || '').trim();
+                    return {
+                        projeto: proj,
+                        tarefa: (row['Tarefa'] || '-').trim(),
+                        data: data,
+                        mesAno: data.length >= 7 ? data.substring(0, 7) : '',
+                        horas: h,
+                        usuario: (row['Usuário'] || '').trim(),
+                        comentario: (row['Comentário'] || '').trim()
+                    };
+                });
+
+            state.projects = new Set(state.rawRows.map(r => r.projeto).sort());
+
+            // Garante que projetos dos dados_brutos existam nas configs
+            state.projects.forEach(p => {
+                if (!state.projectConfigs[p]) {
+                    state.projectConfigs[p] = { active: true, budgetHours: 0, soldValue: 0, hourlyRate: 0, obs: '', obsDate: '' };
+                }
+            });
+
+            // Atualiza select de projetos
+            const projSelect = document.getElementById('filterProject');
+            projSelect.innerHTML = '<option value="ALL">Todos os Ativos</option>';
+            state.projects.forEach(p => {
+                projSelect.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('view-operacional').classList.remove('hidden');
+            applyFilters();
+        }
+
+        // =============================================
+        // FILTROS E DASHBOARDS
+        // =============================================
+        function applyFilters() {
+            if (state.rawRows.length === 0) return;
+            const projFilter = document.getElementById('filterProject').value;
+            const start = document.getElementById('filterStartDate').value;
+            const end = document.getElementById('filterEndDate').value;
+
+            state.filteredRows = state.rawRows.filter(row => {
+                const config = state.projectConfigs[row.projeto];
+                if (config && !config.active) return false;
+                const passProj = projFilter === 'ALL' || row.projeto === projFilter;
+                const passStart = !start || row.data >= start;
+                const passEnd = !end || row.data <= end;
+                return passProj && passStart && passEnd;
+            });
+
+            renderOperacional();
+            renderGerencial();
+            renderProdutividade();
+        }
+
+        function renderOperacional() {
+            let consumedByProject = {};
+            let totalConsumed = 0;
+            let totalBudget = 0;
+
+            state.filteredRows.forEach(row => {
+                consumedByProject[row.projeto] = (consumedByProject[row.projeto] || 0) + row.horas;
+                totalConsumed += row.horas;
+            });
+
+            const activeProjects = Array.from(state.projects).filter(p => state.projectConfigs[p]?.active !== false);
+            activeProjects.forEach(p => totalBudget += parseFloat(state.projectConfigs[p]?.budgetHours || 0));
+
+            document.getElementById('kpiTotalBudget').textContent = formatHours(totalBudget);
+            document.getElementById('kpiTotalConsumed').textContent = formatHours(totalConsumed);
+            document.getElementById('kpiTotalBalance').textContent = formatHours(totalBudget - totalConsumed);
+
+            const tbody = document.getElementById('tableBudgetBody');
+            tbody.innerHTML = '';
+            let projLabels = [], budgetData = [], consumedData = [];
+
+            activeProjects.forEach(p => {
+                const config = state.projectConfigs[p] || {};
+                const budget = parseFloat(config.budgetHours || 0);
+                const consumed = consumedByProject[p] || 0;
+                const balance = budget - consumed;
+                const statusHtml = balance < 0
+                    ? '<span class="bg-red-100 text-red-800 px-2 rounded-full text-[10px]">ESTOURADO</span>'
+                    : '<span class="bg-green-100 text-green-800 px-2 rounded-full text-[10px]">OK</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">${p}</td>
+                        <td class="px-6 py-4 text-right text-sm">${budget.toFixed(1)}h</td>
+                        <td class="px-6 py-4 text-right text-sm font-bold">${consumed.toFixed(1)}h</td>
+                        <td class="px-6 py-4 text-right text-sm ${balance < 0 ? 'text-red-600 font-bold' : ''}">${balance.toFixed(1)}h</td>
+                        <td class="px-6 py-4 text-xs text-slate-500 italic max-w-xs truncate">${config.obs || '-'} <br><span class="text-[9px] opacity-60">${config.obsDate || ''}</span></td>
+                        <td class="px-6 py-4 text-center">${statusHtml}</td>
+                    </tr>`;
+                projLabels.push(p); budgetData.push(budget); consumedData.push(consumed);
+            });
+
+            renderChart('chartProjectHours', 'bar', {
+                labels: projLabels,
+                datasets: [
+                    { label: 'Contratado', data: budgetData, backgroundColor: '#e2e8f0' },
+                    { label: 'Consumido', data: consumedData, backgroundColor: '#0055A4' }
+                ]
+            });
+
+            let monthly = {};
+            state.filteredRows.forEach(row => monthly[row.mesAno] = (monthly[row.mesAno] || 0) + row.horas);
+            const sortedMonths = Object.keys(monthly).sort();
+            renderChart('chartMonthlyEvolution', 'line', {
+                labels: sortedMonths,
+                datasets: [{ label: 'Horas', data: sortedMonths.map(m => monthly[m]), borderColor: '#003366', backgroundColor: 'rgba(0,51,102,0.1)', fill: true }]
+            });
+        }
+
+        function renderGerencial() {
+            let totalRevenue = 0, totalCost = 0;
+            const activeProjects = Array.from(state.projects).filter(p => state.projectConfigs[p]?.active !== false);
+            let projLabels = [], revenueData = [], costData = [];
+
+            activeProjects.forEach(p => {
+                const config = state.projectConfigs[p] || {};
+                const sold = parseFloat(config.soldValue || 0);
+                const rate = parseFloat(config.hourlyRate || 0);
+                const h = state.filteredRows.filter(r => r.projeto === p).reduce((acc, curr) => acc + curr.horas, 0);
+                const cost = h * rate;
+                totalRevenue += sold; totalCost += cost;
+                projLabels.push(p); revenueData.push(sold); costData.push(cost);
+            });
+
+            document.getElementById('kpiTotalRevenue').textContent = formatCurrency(totalRevenue);
+            document.getElementById('kpiTotalCost').textContent = formatCurrency(totalCost);
+            document.getElementById('kpiTotalMargin').textContent = formatCurrency(totalRevenue - totalCost);
+
+            renderChart('chartFinancialProfitability', 'bar', {
+                labels: projLabels,
+                datasets: [
+                    { label: 'Vendido', data: revenueData, backgroundColor: '#003366' },
+                    { label: 'Custo', data: costData, backgroundColor: '#f97316' }
+                ]
+            });
+
+            let accumulated = 0, burndown = {};
+            state.filteredRows.forEach(row => {
+                const rate = state.projectConfigs[row.projeto]?.hourlyRate || 0;
+                burndown[row.mesAno] = (burndown[row.mesAno] || 0) + (row.horas * rate);
+            });
+            const sm = Object.keys(burndown).sort();
+            renderChart('chartFinancialBurndown', 'line', {
+                labels: sm,
+                datasets: [{ label: 'Custo Acumulado', data: sm.map(m => accumulated += burndown[m]), borderColor: '#dc2626', fill: false }]
+            });
+        }
+
+        function renderProdutividade() {
+            const expected = state.meta.days * state.meta.hoursPerDay;
+            document.getElementById('metaDisplay').textContent = state.meta.value + '%';
+            document.getElementById('apurationDateDisplay').textContent = formatDateStr(state.meta.date) || '-';
+            document.getElementById('workingDaysDisplay').textContent = state.meta.days;
+            document.getElementById('workingHoursDisplay').textContent = String(state.meta.hoursPerDay).replace('.', ',');
+            document.getElementById('expectedHoursDisplay').textContent = expected.toFixed(1) + 'h';
+
+            const tbody = document.getElementById('tableProdutividadeBody');
+            tbody.innerHTML = '';
+
+            state.developers.forEach(dev => {
+                // Busca por nome do dev na coluna Usuário OU Comentário
+                const devRows = state.filteredRows.filter(r =>
+                    r.usuario.toLowerCase().includes(dev.toLowerCase()) ||
+                    r.comentario.toLowerCase().includes(dev.toLowerCase())
+                );
+                if (devRows.length === 0) return;
+
+                const totalH = devRows.reduce((acc, r) => acc + r.horas, 0);
+                const efetividade = expected > 0 ? (totalH / expected) * 100 : 0;
+                const hAdm = devRows.filter(r => r.tarefa.toLowerCase().includes('adm') || r.projeto.toLowerCase().includes('interno')).reduce((a, b) => a + b.horas, 0);
+                const hProj = totalH - hAdm;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="font-bold text-left">${dev}</td>
+                        <td class="font-bold">${totalH.toFixed(2)}</td>
+                        <td>${formatDateStr(state.meta.date)}</td>
+                        <td class="font-bold ${efetividade >= 100 ? 'text-green-600' : 'text-red-600'}">${efetividade.toFixed(2)}%</td>
+                        <td class="text-[10px] text-slate-400 italic">-</td>
+                        <td>-</td>
+                        <td>${hAdm.toFixed(2)}</td>
+                        <td>${hProj.toFixed(2)}</td>
+                        <td>${totalH > 0 ? ((hProj/totalH)*100).toFixed(1) : 0}%</td>
+                    </tr>`;
+            });
+        }
+
+        // =============================================
+        // UTILITÁRIOS
+        // =============================================
+        function renderChart(id, type, data) {
+            if (state.chartInstances[id]) state.chartInstances[id].destroy();
+            const ctx = document.getElementById(id).getContext('2d');
+            state.chartInstances[id] = new Chart(ctx, {
+                type, data,
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+        }
+
+        function switchTab(tab) {
+            ['operacional', 'gerencial', 'produtividade'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = 'tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2';
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = 'tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2';
+        }
+
+        function switchConfigTab(tab) {
+            ['devs', 'metas'].forEach(t => {
+                document.getElementById(`cfg-view-${t}`).classList.add('hidden');
+                document.getElementById(`cfg-tab-${t}`).className = 'py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-brand-900';
+            });
+            document.getElementById(`cfg-view-${tab}`).classList.remove('hidden');
+            document.getElementById(`cfg-tab-${tab}`).className = 'py-3 text-sm font-medium border-b-2 border-brand-900 text-brand-900';
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function saveConfigurations() {
+            state.developers = Array.from(document.querySelectorAll('#devList li span')).map(s => s.innerText);
+            localStorage.setItem('dash_devs', JSON.stringify(state.developers));
+            state.meta = {
+                value: document.getElementById('metaValue').value,
+                date: document.getElementById('apurationDate').value,
+                days: parseFloat(document.getElementById('workingDays').value),
+                hoursPerDay: parseFloat(document.getElementById('workingHours').value)
+            };
+            localStorage.setItem('dash_meta', JSON.stringify(state.meta));
+            closeModal('configModal');
+            if (state.rawRows.length > 0) applyFilters();
+        }
+
+        function renderDevListInModal() {
+            const ul = document.getElementById('devList');
+            ul.innerHTML = '';
+            state.developers.forEach(dev => {
+                ul.innerHTML += `
+                    <li class="flex justify-between items-center bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                        <span class="text-sm font-medium">${dev}</span>
+                        <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </li>`;
+            });
+            lucide.createIcons();
+        }
+
+        function addDeveloper() {
+            const name = document.getElementById('newDevName').value.trim();
+            if (name) { state.developers.push(name); document.getElementById('newDevName').value = ''; renderDevListInModal(); }
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('dashboardContent');
+            element.classList.add('pdf-mode');
+            const currentTab = document.querySelector('.tab-active').id.replace('tab-', '');
+            ['operacional', 'gerencial', 'produtividade'].forEach(t => document.getElementById(`view-${t}`).classList.remove('hidden'));
+            const opt = {
+                margin: 5, filename: `Dashboard_RPA_${state.meta.date || 'relatorio'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 1.5, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+            };
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.remove('pdf-mode');
+                switchTab(currentTab);
+            });
+        }
+
+        function formatHours(h) { return (h || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + 'h'; }
+        function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); }
+        function formatDateStr(s) { if (!s) return ''; const parts = s.split('-'); if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; return s; }
+
+        // Atualiza automaticamente a cada 5 minutos
+        setInterval(loadAllData, 5 * 60 * 1000);
+
+        window.onload = init;
+    </script>
+</body>
+</html>
