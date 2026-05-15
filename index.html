@@ -21,11 +21,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .tab-active { border-bottom: 2px solid #003366; color: #003366; font-weight: 600; }
-        .tab-inactive { color: #64748b; border-bottom: 2px solid transparent; }
+        .tab-inactive { color: #3b5983; border-bottom: 2px solid transparent; }
         .tab-inactive:hover { color: #003366; }
         .pdf-mode { width: 1400px !important; padding: 30px !important; background: white !important; }
         .pdf-mode .no-print { display: none !important; }
@@ -52,7 +53,7 @@
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center gap-4">
                     <img src="./logo.jpg" alt="Logo" class="h-10 w-auto">
-                    <span class="font-semibold text-xl hidden sm:block">Gestão de Projetos e Produtividades</span>
+                    <span class="font-semibold text-xl hidden sm:block">Gestão de Projetos - RPA</span>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="reloadData()" class="flex items-center gap-2 bg-brand-500 px-4 py-2 rounded-md font-medium hover:bg-brand-400 transition">
@@ -79,12 +80,6 @@
                     <span class="text-slate-500">até</span>
                     <input type="date" id="filterEndDate" class="border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="applyFilters()">
                 </div>
-            </div>
-            <div class="flex-1 min-w-[200px]">
-                <label class="block text-sm font-medium text-slate-700 mb-1">Filtro de Projeto</label>
-                <select id="filterProject" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="applyFilters()">
-                    <option value="ALL">Todos os Ativos</option>
-                </select>
             </div>
             <div class="text-xs text-slate-400 italic" id="lastUpdateInfo">Aguardando dados...</div>
         </div>
@@ -142,8 +137,9 @@
                 </div>
             </div>
             <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
-                <div class="px-6 py-4 border-b border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-200 space-y-3">
                     <h3 class="text-base font-semibold text-slate-800">Acompanhamento de Saldo por Projeto</h3>
+                    <div id="opProjectFilter" class="flex flex-wrap gap-2 items-center"></div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
@@ -151,7 +147,8 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Projeto</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Contratado</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Consumido</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Consumido Total</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Horas no Período</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Saldo</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Observação</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">Status</th>
@@ -161,32 +158,114 @@
                     </table>
                 </div>
             </div>
+            <!-- Seção de Sustentação (gerada via JS) -->
+            <div id="sustentacaoSection" class="space-y-6"></div>
         </div>
 
         <!-- GERENCIAL -->
         <div id="view-gerencial" class="hidden space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-500 break-inside-avoid">
-                    <p class="text-sm font-medium text-slate-500">Receita Total Contratada</p>
-                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalRevenue">R$ 0,00</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-brand-500 break-inside-avoid">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Receita Contratada</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900" id="kpiTotalRevenue">R$ 0,00</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-danger-500 break-inside-avoid">
-                    <p class="text-sm font-medium text-slate-500">Custo Consumido</p>
-                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalCost">R$ 0,00</p>
+                <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-danger-500 break-inside-avoid">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Custo Consumido</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900" id="kpiTotalCost">R$ 0,00</p>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-brand-900 break-inside-avoid">
-                    <p class="text-sm font-medium text-slate-500">Margem / Saldo Atual</p>
-                    <p class="mt-2 text-3xl font-semibold text-slate-900" id="kpiTotalMargin">R$ 0,00</p>
+                <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-brand-900 break-inside-avoid">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Margem Operacional</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-900" id="kpiTotalMargin">R$ 0,00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-emerald-500 break-inside-avoid">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Receita Recorrente/mês</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700" id="kpiRecorrente">R$ 0,00</p>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
-                    <h3 class="text-base font-semibold text-slate-800 mb-4">Rentabilidade por Projeto (R$)</h3>
+                    <h3 class="text-base font-semibold text-slate-800 mb-1">Rentabilidade por Projeto (R$)</h3>
+                    <p class="text-xs text-slate-400 mb-4">Vendido vs Custo consumido por projeto</p>
                     <div class="h-64"><canvas id="chartFinancialProfitability"></canvas></div>
                 </div>
                 <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
-                    <h3 class="text-base font-semibold text-slate-800 mb-4">Evolução do Custo Acumulado</h3>
+                    <h3 class="text-base font-semibold text-slate-800 mb-1">Evolução Financeira Acumulada</h3>
+                    <p class="text-xs text-slate-400 mb-4">Receita acumulada vs Custo acumulado por mês</p>
                     <div class="h-64"><canvas id="chartFinancialBurndown"></canvas></div>
+                </div>
+            </div>
+            <!-- Tabela 1: Saúde Financeira -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h3 class="text-base font-semibold text-slate-800">Saúde Financeira por Projeto</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Budget, receita contratada, custo do desenvolvedor e margem por projeto</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Budget (h)</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Vendido R$</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo/h</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Horas Consumidas</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo de Projeto</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Margem R$</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">% Margem</th>
+                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Obs.</th>
+                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Atualização</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableFinancialHealth" class="bg-white divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Tabela 1b: Recorrências de Sustentação -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h3 class="text-base font-semibold text-slate-800">Recorrências de Sustentação</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Projetos com budget recorrente mensal — receita contratada, custo e margem acumulada</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Budget (h/mês)</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Vendido R$</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo/h</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Horas Consumidas</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo de Projeto</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Margem R$</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">% Margem</th>
+                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Obs.</th>
+                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Atualização</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableFinancialSust" class="bg-white divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Tabela 2: Infra e Licenças -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h3 class="text-base font-semibold text-slate-800">Infraestrutura e Licenças</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Tipo de infra, plataforma e receitas recorrentes por projeto</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
+                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Infra</th>
+                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Plataforma / Licença</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Rec. Licença/mês</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Rec. Infra/mês</th>
+                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Total Recorrente/mês</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableInfraLicenca" class="bg-white divide-y divide-slate-200"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -207,7 +286,7 @@
                     <table class="min-w-full custom-table">
                         <thead>
                             <tr>
-                                <th>Quem</th><th>Horas Apontadas</th><th>Data</th><th>Efetividade</th>
+                                <th>Quem</th><th>Horas Apontadas</th><th>Efetividade</th>
                                 <th>Observação</th><th>Ausência</th><th>Horas Adm.</th><th>Horas Proj.</th><th>% Proj.</th>
                             </tr>
                         </thead>
@@ -256,6 +335,7 @@
 
     <script>
         lucide.createIcons();
+        Chart.register(ChartDataLabels);
 
         // =============================================
         // URLs DO GOOGLE SHEETS
@@ -344,11 +424,11 @@
                     active: localConfigs[nome]?.active ?? ativo,
                     budgetHours: parseFloat((row['Budget'] || '0').replace(',', '.')) || 0,
                     soldValue: parseFloat((row['Vendido R$'] || '0').replace(/[R$\s.]/g, '').replace(',', '.')) || 0,
-                    hourlyRate: parseFloat((row['Custo/h'] || '0').replace(',', '.')) || 0,
+                    hourlyRate: parseFloat((row['Custo/h'] || '0').replace(',', '.')) || 195,
                     obs: row['Obs.'] || '',
                     obsDate: row['Data'] || '',
-                    infra: parseFloat((row['Infra'] || '0').replace(',', '.')) || 0,
-                    licenca: parseFloat((row['Licença'] || '0').replace(',', '.')) || 0,
+                    infra: (row['Infra'] || '').trim(),
+                    licenca: (row['Licença'] || '').trim(),
                     receitaLicenca: parseFloat((row['Receita de Licença'] || '0').replace(',', '.')) || 0,
                     receitaInfra: parseFloat((row['Receita Infra'] || '0').replace(',', '.')) || 0
                 };
@@ -383,16 +463,12 @@
             // Garante que projetos dos dados_brutos existam nas configs
             state.projects.forEach(p => {
                 if (!state.projectConfigs[p]) {
-                    state.projectConfigs[p] = { active: true, budgetHours: 0, soldValue: 0, hourlyRate: 0, obs: '', obsDate: '' };
+                    state.projectConfigs[p] = { active: true, budgetHours: 0, soldValue: 0, hourlyRate: 195, obs: '', obsDate: '' };
                 }
             });
 
-            // Atualiza select de projetos
-            const projSelect = document.getElementById('filterProject');
-            projSelect.innerHTML = '<option value="ALL">Todos os Ativos</option>';
-            state.projects.forEach(p => {
-                projSelect.innerHTML += `<option value="${p}">${p}</option>`;
-            });
+            // Reseta seleção de projetos ao recarregar dados
+            window._opSelectedProjects = null;
 
             document.getElementById('emptyState').classList.add('hidden');
             document.getElementById('view-operacional').classList.remove('hidden');
@@ -404,17 +480,15 @@
         // =============================================
         function applyFilters() {
             if (state.rawRows.length === 0) return;
-            const projFilter = document.getElementById('filterProject').value;
             const start = document.getElementById('filterStartDate').value;
             const end = document.getElementById('filterEndDate').value;
 
             state.filteredRows = state.rawRows.filter(row => {
                 const config = state.projectConfigs[row.projeto];
                 if (config && !config.active) return false;
-                const passProj = projFilter === 'ALL' || row.projeto === projFilter;
                 const passStart = !start || row.data >= start;
                 const passEnd = !end || row.data <= end;
-                return passProj && passStart && passEnd;
+                return passStart && passEnd;
             });
 
             renderOperacional();
@@ -423,100 +497,501 @@
         }
 
         function renderOperacional() {
-            let consumedByProject = {};
-            let totalConsumed = 0;
-            let totalBudget = 0;
+            const isAdm  = p => p.toLowerCase().includes('administrativ');
+            const isSust = p => p.toLowerCase().includes('sustenta');
 
-            state.filteredRows.forEach(row => {
-                consumedByProject[row.projeto] = (consumedByProject[row.projeto] || 0) + row.horas;
-                totalConsumed += row.horas;
+            const allRpaProjects = Array.from(state.projects)
+                .filter(p => p.startsWith('RPA -') && state.projectConfigs[p]?.active !== false)
+                .sort();
+
+            const admProjects  = allRpaProjects.filter(isAdm);
+            const sustProjects = allRpaProjects.filter(isSust);
+            const mainProjects = allRpaProjects.filter(p => !isAdm(p) && !isSust(p));
+
+            // Inicializa seleção apenas para projetos principais
+            if (!window._opSelectedProjects) {
+                window._opSelectedProjects = new Set(mainProjects);
+            }
+
+            renderOpProjectFilter(mainProjects);
+            const selectedProjects = mainProjects.filter(p => window._opSelectedProjects.has(p));
+
+            // Consumido total histórico (rawRows)
+            const consumedTotal = {};
+            state.rawRows.filter(r => allRpaProjects.includes(r.projeto)).forEach(r => {
+                consumedTotal[r.projeto] = (consumedTotal[r.projeto] || 0) + r.horas;
             });
 
-            const activeProjects = Array.from(state.projects).filter(p => state.projectConfigs[p]?.active !== false);
-            activeProjects.forEach(p => totalBudget += parseFloat(state.projectConfigs[p]?.budgetHours || 0));
+            // Horas no período filtrado
+            const periodHours = {};
+            state.filteredRows.filter(r => allRpaProjects.includes(r.projeto)).forEach(r => {
+                periodHours[r.projeto] = (periodHours[r.projeto] || 0) + r.horas;
+            });
 
-            document.getElementById('kpiTotalBudget').textContent = formatHours(totalBudget);
-            document.getElementById('kpiTotalConsumed').textContent = formatHours(totalConsumed);
-            document.getElementById('kpiTotalBalance').textContent = formatHours(totalBudget - totalConsumed);
+            // KPIs — apenas projetos principais selecionados
+            let totalBudget = 0, totalConsumed = 0;
+            selectedProjects.forEach(p => {
+                totalBudget  += parseFloat(state.projectConfigs[p]?.budgetHours || 0);
+                totalConsumed += consumedTotal[p] || 0;
+            });
+            document.getElementById('kpiTotalBudget').textContent   = formatHours(totalBudget);
+            document.getElementById('kpiTotalConsumed').textContent  = formatHours(totalConsumed);
+            document.getElementById('kpiTotalBalance').textContent   = formatHours(totalBudget - totalConsumed);
 
+            // Tabela: ADM fixo no topo + projetos principais selecionados
             const tbody = document.getElementById('tableBudgetBody');
-            tbody.innerHTML = '';
-            let projLabels = [], budgetData = [], consumedData = [];
+            let tbodyHtml = '';
 
-            activeProjects.forEach(p => {
-                const config = state.projectConfigs[p] || {};
-                const budget = parseFloat(config.budgetHours || 0);
-                const consumed = consumedByProject[p] || 0;
-                const balance = budget - consumed;
+            admProjects.forEach(p => {
+                const consumed = consumedTotal[p] || 0;
+                const period   = periodHours[p]   || 0;
+                tbodyHtml += `
+                    <tr class="bg-slate-50 border-b-2 border-slate-200">
+                        <td class="px-6 py-4 text-sm font-medium text-slate-700">
+                            <span class="inline-block bg-slate-200 text-slate-600 text-[9px] px-1.5 py-0.5 rounded font-bold mr-2 uppercase">ADM</span>${p.replace('RPA - ', '')}
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm text-slate-400">—</td>
+                        <td class="px-6 py-4 text-right text-sm font-bold">${consumed.toFixed(1)}h</td>
+                        <td class="px-6 py-4 text-right text-sm text-brand-500 font-medium">${period.toFixed(1)}h</td>
+                        <td class="px-6 py-4 text-right text-sm text-slate-400">—</td>
+                        <td class="px-6 py-4 text-xs text-slate-500 italic">Apontamento interno</td>
+                        <td class="px-6 py-4 text-center"><span class="bg-slate-100 text-slate-600 px-2 rounded-full text-[10px] font-medium">INTERNO</span></td>
+                    </tr>`;
+            });
+
+            let projLabels = [], budgetData = [], consumedData = [];
+            selectedProjects.forEach(p => {
+                const config  = state.projectConfigs[p] || {};
+                const budget  = parseFloat(config.budgetHours || 0);
+                const consumed = consumedTotal[p] || 0;
+                const period   = periodHours[p]   || 0;
+                const balance  = budget - consumed;
                 const statusHtml = balance < 0
                     ? '<span class="bg-red-100 text-red-800 px-2 rounded-full text-[10px]">ESTOURADO</span>'
                     : '<span class="bg-green-100 text-green-800 px-2 rounded-full text-[10px]">OK</span>';
-
-                tbody.innerHTML += `
+                tbodyHtml += `
                     <tr>
                         <td class="px-6 py-4 text-sm font-medium text-slate-900">${p}</td>
                         <td class="px-6 py-4 text-right text-sm">${budget.toFixed(1)}h</td>
                         <td class="px-6 py-4 text-right text-sm font-bold">${consumed.toFixed(1)}h</td>
+                        <td class="px-6 py-4 text-right text-sm text-brand-500 font-medium">${period.toFixed(1)}h</td>
                         <td class="px-6 py-4 text-right text-sm ${balance < 0 ? 'text-red-600 font-bold' : ''}">${balance.toFixed(1)}h</td>
-                        <td class="px-6 py-4 text-xs text-slate-500 italic max-w-xs truncate">${config.obs || '-'} <br><span class="text-[9px] opacity-60">${config.obsDate || ''}</span></td>
+                        <td class="px-6 py-4 text-xs text-slate-500 italic max-w-xs truncate">${config.obs || '-'}<br><span class="text-[9px] opacity-60">${config.obsDate || ''}</span></td>
                         <td class="px-6 py-4 text-center">${statusHtml}</td>
                     </tr>`;
-                projLabels.push(p); budgetData.push(budget); consumedData.push(consumed);
+                projLabels.push(p.replace('RPA - ', ''));
+                budgetData.push(budget);
+                consumedData.push(consumed);
             });
+            tbody.innerHTML = tbodyHtml;
 
+            // Gráfico horizontal (projetos principais selecionados)
             renderChart('chartProjectHours', 'bar', {
                 labels: projLabels,
                 datasets: [
-                    { label: 'Contratado', data: budgetData, backgroundColor: '#e2e8f0' },
-                    { label: 'Consumido', data: consumedData, backgroundColor: '#0055A4' }
+                    { label: 'Contratado', data: budgetData,  backgroundColor: '#1e293b', borderRadius: 3 },
+                    { label: 'Consumido',  data: consumedData, backgroundColor: '#0055A4', borderRadius: 3 }
                 ]
+            }, {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                    datalabels: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                    y: { ticks: { font: { size: 10 } } }
+                }
             });
 
-            let monthly = {};
-            state.filteredRows.forEach(row => monthly[row.mesAno] = (monthly[row.mesAno] || 0) + row.horas);
+            // Evolução mensal — todos os projetos RPA no período
+            const monthly = {};
+            state.filteredRows.filter(r => allRpaProjects.includes(r.projeto)).forEach(r => {
+                if (r.mesAno) monthly[r.mesAno] = (monthly[r.mesAno] || 0) + r.horas;
+            });
             const sortedMonths = Object.keys(monthly).sort();
             renderChart('chartMonthlyEvolution', 'line', {
-                labels: sortedMonths,
-                datasets: [{ label: 'Horas', data: sortedMonths.map(m => monthly[m]), borderColor: '#003366', backgroundColor: 'rgba(0,51,102,0.1)', fill: true }]
+                labels: sortedMonths.map(formatMesAno),
+                datasets: [{ label: 'Horas', data: sortedMonths.map(m => monthly[m]), borderColor: '#003366', backgroundColor: 'rgba(0,51,102,0.1)', fill: true, tension: 0.3 }]
+            });
+
+            // Seção de sustentação
+            renderSustentacao(sustProjects);
+        }
+
+        function renderOpProjectFilter(projects) {
+            const container = document.getElementById('opProjectFilter');
+            if (!container) return;
+            const sel = window._opSelectedProjects || new Set(projects);
+            container.innerHTML = `
+                <div class="flex items-center gap-3 flex-wrap w-full">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Projetos:</span>
+                    <button onclick="opSelectAll()" class="text-xs px-2 py-0.5 rounded border border-slate-300 hover:border-brand-500 hover:text-brand-500 transition">Todos</button>
+                    <button onclick="opClearAll()" class="text-xs px-2 py-0.5 rounded border border-slate-300 hover:border-red-400 hover:text-red-400 transition">Nenhum</button>
+                    <div class="flex flex-wrap gap-2">
+                        ${projects.map(p => {
+                            const label = p.replace('RPA - ', '');
+                            const checked = sel.has(p);
+                            return `<label class="flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-full border text-xs font-medium transition select-none ${checked ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white border-slate-300 text-slate-600 hover:border-brand-500'}">
+                                <input type="checkbox" class="sr-only" ${checked ? 'checked' : ''} onchange="toggleOpProject('${p}', this.checked)">
+                                ${label}
+                            </label>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+        }
+
+        function toggleOpProject(project, checked) {
+            if (!window._opSelectedProjects) window._opSelectedProjects = new Set();
+            if (checked) window._opSelectedProjects.add(project);
+            else window._opSelectedProjects.delete(project);
+            renderOperacional();
+        }
+
+        function opSelectAll() {
+            const main = Array.from(state.projects).filter(p =>
+                p.startsWith('RPA -') &&
+                state.projectConfigs[p]?.active !== false &&
+                !p.toLowerCase().includes('administrativ') &&
+                !p.toLowerCase().includes('sustenta')
+            );
+            window._opSelectedProjects = new Set(main);
+            renderOperacional();
+        }
+
+        function opClearAll() {
+            window._opSelectedProjects = new Set();
+            renderOperacional();
+        }
+
+        function renderSustentacao(sustProjects) {
+            const container = document.getElementById('sustentacaoSection');
+            if (!container) return;
+            container.innerHTML = '';
+            if (sustProjects.length === 0) return;
+
+            const hdr = document.createElement('div');
+            hdr.className = 'flex items-center gap-3 pt-2';
+            hdr.innerHTML = `<h2 class="text-base font-semibold text-slate-800">Projetos de Sustentação</h2>
+                <span class="text-xs text-slate-400">Budget mensal recorrente · carry-over acumulado</span>`;
+            container.appendChild(hdr);
+
+            sustProjects.forEach(proj => {
+                const config        = state.projectConfigs[proj] || {};
+                const monthlyBudget = parseFloat(config.budgetHours || 0);
+                const projId        = proj.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+
+                // Dados mensais históricos completos
+                const monthMap = {};
+                state.rawRows.filter(r => r.projeto === proj).forEach(r => {
+                    if (r.mesAno) monthMap[r.mesAno] = (monthMap[r.mesAno] || 0) + r.horas;
+                });
+                const sortedMonths = Object.keys(monthMap).sort();
+
+                // Calcula saldo acumulado mês a mês
+                let runningBalance = 0;
+                const monthRows = sortedMonths.map(m => {
+                    const consumed  = monthMap[m];
+                    const saldoMes  = monthlyBudget - consumed;
+                    runningBalance += saldoMes;
+                    return { mes: m, consumed, saldoMes, runningBalance };
+                });
+                const lastBalance = monthRows.length ? monthRows[monthRows.length - 1].runningBalance : 0;
+
+                // Agrupa meses em trimestres para o colapso
+                const quarters = {};
+                const quarterOrder = [];
+                monthRows.forEach(r => {
+                    const [year, month] = r.mes.split('-');
+                    const q    = Math.ceil(parseInt(month) / 3);
+                    const qKey = `T${q}_${year}`;
+                    if (!quarters[qKey]) {
+                        quarters[qKey] = { label: `T${q}/${year}`, months: [], consumedQ: 0, budgetQ: 0, lastAcc: 0 };
+                        quarterOrder.push(qKey);
+                    }
+                    quarters[qKey].months.push(r);
+                    quarters[qKey].consumedQ += r.consumed;
+                    quarters[qKey].budgetQ   += monthlyBudget;
+                    quarters[qKey].lastAcc    = r.runningBalance;
+                });
+
+                // Monta linhas da tabela (cabeçalho trimestral colapsável + detalhes)
+                let tableRowsHtml = '';
+                quarterOrder.forEach(qKey => {
+                    const qt       = quarters[qKey];
+                    const saldoQ   = qt.budgetQ - qt.consumedQ;
+                    const rowClass = `sust-detail-${projId}-${qKey}`;
+                    const arrowId  = `sarrow_${projId}_${qKey}`;
+
+                    tableRowsHtml += `
+                        <tr style="cursor:pointer;background:#eff6ff" onclick="toggleSustRows('${projId}','${qKey}')">
+                            <td colspan="6" style="padding:8px 12px;text-align:left;border:1px solid #bfdbfe;border-top:2px solid #93c5fd">
+                                <span style="display:flex;align-items:center;justify-content:space-between">
+                                    <span style="display:flex;align-items:center;gap:8px">
+                                        <span id="${arrowId}" style="font-size:10px;color:#0055A4">▶</span>
+                                        <strong style="color:#003366;font-size:0.82rem">${qt.label}</strong>
+                                        <span style="color:#94a3b8;font-size:0.70rem">${qt.months.length} mês${qt.months.length > 1 ? 'es' : ''}</span>
+                                    </span>
+                                    <span style="display:flex;gap:12px;font-size:0.78rem;align-items:center">
+                                        <span style="color:#64748b">${qt.budgetQ.toFixed(1)}h contrat.</span>
+                                        <span style="font-weight:700">${qt.consumedQ.toFixed(1)}h cons.</span>
+                                        <span style="font-weight:700;color:${saldoQ < 0 ? '#dc2626' : '#059669'}">${saldoQ >= 0 ? '+' : ''}${saldoQ.toFixed(1)}h</span>
+                                        <span style="font-weight:700;font-size:0.72rem;color:${qt.lastAcc < 0 ? '#dc2626' : '#059669'}">Acum: ${qt.lastAcc >= 0 ? '+' : ''}${qt.lastAcc.toFixed(1)}h</span>
+                                    </span>
+                                </span>
+                            </td>
+                        </tr>`;
+
+                    qt.months.forEach(r => {
+                        tableRowsHtml += `
+                            <tr class="${rowClass}" style="display:none;background:#fafcff">
+                                <td style="padding:7px 10px 7px 24px;text-align:left;font-size:0.8rem;font-weight:500;color:#334155">${formatMesAno(r.mes)}</td>
+                                <td style="padding:7px 10px;text-align:right;font-size:0.8rem">${monthlyBudget.toFixed(1)}h</td>
+                                <td style="padding:7px 10px;text-align:right;font-size:0.8rem;font-weight:700">${r.consumed.toFixed(1)}h</td>
+                                <td style="padding:7px 10px;text-align:right;font-size:0.8rem;font-weight:600;color:${r.saldoMes < 0 ? '#ef4444' : '#10b981'}">${r.saldoMes >= 0 ? '+' : ''}${r.saldoMes.toFixed(1)}h</td>
+                                <td style="padding:7px 10px;text-align:right;font-size:0.8rem;font-weight:700;color:${r.runningBalance < 0 ? '#dc2626' : '#059669'}">${r.runningBalance >= 0 ? '+' : ''}${r.runningBalance.toFixed(1)}h</td>
+                                <td style="padding:7px 10px;text-align:center">${r.saldoMes < 0
+                                    ? '<span style="background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:9999px;font-size:10px">ESTOURADO</span>'
+                                    : '<span style="background:#dcfce7;color:#166534;padding:1px 8px;border-radius:9999px;font-size:10px">OK</span>'}</td>
+                            </tr>`;
+                    });
+                });
+
+                // Monta card com layout lado a lado: gráfico | tabela
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid';
+                card.innerHTML = `
+                    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-800">${proj}</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Budget recorrente: <strong class="text-brand-900">${monthlyBudget.toFixed(1)}h/mês</strong>${config.obs ? ` · ${config.obs}` : ''}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500 uppercase tracking-wide">Saldo acumulado</p>
+                            <p class="text-xl font-bold ${lastBalance < 0 ? 'text-red-600' : 'text-emerald-600'}">${lastBalance >= 0 ? '+' : ''}${lastBalance.toFixed(1)}h</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 lg:divide-x divide-slate-100">
+                        <div class="p-5 border-b lg:border-b-0">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Consumo Mensal vs Contratado</p>
+                            <div class="h-64"><canvas id="chart_sust_${projId}"></canvas></div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-200">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-3 py-2.5 text-left   text-[10px] font-semibold text-slate-500 uppercase">Período</th>
+                                        <th class="px-3 py-2.5 text-right  text-[10px] font-semibold text-slate-500 uppercase">Contrat.</th>
+                                        <th class="px-3 py-2.5 text-right  text-[10px] font-semibold text-slate-500 uppercase">Consumido</th>
+                                        <th class="px-3 py-2.5 text-right  text-[10px] font-semibold text-slate-500 uppercase">Saldo Mês</th>
+                                        <th class="px-3 py-2.5 text-right  text-[10px] font-semibold text-slate-500 uppercase">Acumulado</th>
+                                        <th class="px-3 py-2.5 text-center text-[10px] font-semibold text-slate-500 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+                container.appendChild(card);
+
+                // Gráfico mensal: barras consumido (azul/vermelho se estourado) vs contratado (cinza)
+                renderChart(`chart_sust_${projId}`, 'bar', {
+                    labels: sortedMonths.map(formatMesAno),
+                    datasets: [
+                        {
+                            label: 'Contratado',
+                            data: sortedMonths.map(() => monthlyBudget),
+                            backgroundColor: '#cbd5e1',
+                            borderRadius: 3,
+                            order: 2
+                        },
+                        {
+                            label: 'Consumido',
+                            data: sortedMonths.map(m => parseFloat(monthMap[m].toFixed(2))),
+                            backgroundColor: sortedMonths.map(m => monthMap[m] > monthlyBudget ? '#ef4444' : '#0055A4'),
+                            borderRadius: 3,
+                            order: 1
+                        }
+                    ]
+                }, {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                        datalabels: { display: false }
+                    },
+                    scales: {
+                        x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
+                        y: { beginAtZero: true, ticks: { font: { size: 10 } } }
+                    }
+                });
             });
         }
 
-        function renderGerencial() {
-            let totalRevenue = 0, totalCost = 0;
-            const activeProjects = Array.from(state.projects).filter(p => state.projectConfigs[p]?.active !== false);
-            let projLabels = [], revenueData = [], costData = [];
+        function toggleSustRows(projId, qKey) {
+            const rows  = document.querySelectorAll(`.sust-detail-${projId}-${qKey}`);
+            const arrow = document.getElementById(`sarrow_${projId}_${qKey}`);
+            const isHidden = rows.length > 0 && rows[0].style.display === 'none';
+            rows.forEach(r => r.style.display = isHidden ? '' : 'none');
+            if (arrow) arrow.textContent = isHidden ? '▼' : '▶';
+        }
 
-            activeProjects.forEach(p => {
-                const config = state.projectConfigs[p] || {};
-                const sold = parseFloat(config.soldValue || 0);
-                const rate = parseFloat(config.hourlyRate || 0);
-                const h = state.filteredRows.filter(r => r.projeto === p).reduce((acc, curr) => acc + curr.horas, 0);
-                const cost = h * rate;
-                totalRevenue += sold; totalCost += cost;
-                projLabels.push(p); revenueData.push(sold); costData.push(cost);
+        function renderGerencial() {
+            const isAdmG = p => p.toLowerCase().includes('administrativ');
+            const activeProjects = Array.from(state.projects)
+                .filter(p => p.startsWith('RPA -') && !isAdmG(p) && state.projectConfigs[p]?.active !== false)
+                .sort();
+
+            let totalRevenue = 0, totalCost = 0, totalRecorrente = 0;
+
+            // Build per-project data
+            const projData = activeProjects.map(p => {
+                const config    = state.projectConfigs[p] || {};
+                const sold      = parseFloat(config.soldValue      || 0);
+                const rate      = parseFloat(config.hourlyRate     || 195);
+                const budget    = parseFloat(config.budgetHours    || 0);
+                const recLic    = parseFloat(config.receitaLicenca || 0);
+                const recInfra  = parseFloat(config.receitaInfra   || 0);
+                const horasAll  = state.rawRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
+                const horasFiltro = state.filteredRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
+                const cost      = horasAll * rate;
+                const costFiltro = horasFiltro * rate;
+                const margem    = sold - cost;
+                const pctMargem = sold > 0 ? (margem / sold) * 100 : 0;
+                const recTotal  = recLic + recInfra;
+                totalRevenue    += sold;
+                totalCost       += cost;
+                totalRecorrente += recTotal;
+                return { p, config, sold, rate, budget, horasAll, horasFiltro, cost, costFiltro, margem, pctMargem, recLic, recInfra, recTotal };
             });
 
-            document.getElementById('kpiTotalRevenue').textContent = formatCurrency(totalRevenue);
-            document.getElementById('kpiTotalCost').textContent = formatCurrency(totalCost);
-            document.getElementById('kpiTotalMargin').textContent = formatCurrency(totalRevenue - totalCost);
+            // KPIs
+            document.getElementById('kpiTotalRevenue').textContent  = formatCurrency(totalRevenue);
+            document.getElementById('kpiTotalCost').textContent     = formatCurrency(totalCost);
+            document.getElementById('kpiTotalMargin').textContent   = formatCurrency(totalRevenue - totalCost);
+            document.getElementById('kpiRecorrente').textContent    = formatCurrency(totalRecorrente);
+
+            const isSustG = p => p.toLowerCase().includes('sustenta');
+            const mainProjData = projData.filter(d => !isSustG(d.p));
+            const sustProjData = projData.filter(d =>  isSustG(d.p));
+
+            const buildHealthRows = (arr, useFiltro = false) => arr.map(d => {
+                const horas       = useFiltro ? d.horasFiltro : d.horasAll;
+                const custo       = useFiltro ? d.costFiltro  : d.cost;
+                const margem      = d.sold - custo;
+                const pct         = d.sold > 0 ? (margem / d.sold) * 100 : 0;
+                const shortName   = d.p.replace(/^RPA\s*-\s*/i, '');
+                const margemColor = margem >= 0 ? 'text-emerald-700' : 'text-red-600';
+                const pctColor    = pct    >= 0 ? 'text-emerald-700' : 'text-red-600';
+                return `<tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.budget > 0 ? d.budget.toFixed(1) + 'h' : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-800 font-medium">${formatCurrency(d.sold)}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.rate > 0 ? formatCurrency(d.rate) : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${horas.toFixed(1)}h</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${formatCurrency(custo)}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold ${margemColor}">${formatCurrency(margem)}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold ${pctColor}">${pct.toFixed(1)}%</td>
+                    <td class="px-5 py-3 text-left  text-sm text-slate-500 max-w-xs truncate" title="${d.config.obs || ''}">${d.config.obs || '-'}</td>
+                    <td class="px-5 py-3 text-center text-sm text-slate-400">${d.config.obsDate || '-'}</td>
+                </tr>`;
+            }).join('');
+
+            // Table 1: Saúde Financeira (projetos principais — histórico completo)
+            document.getElementById('tableFinancialHealth').innerHTML = buildHealthRows(mainProjData, false);
+
+            // Table 1b: Recorrências de Sustentação (horas do período filtrado)
+            document.getElementById('tableFinancialSust').innerHTML = buildHealthRows(sustProjData, true);
+
+            // Table 2: Infra e Licenças (sem adm nem sustentação)
+            const tbInfra = document.getElementById('tableInfraLicenca');
+            tbInfra.innerHTML = projData.filter(d => !isSustG(d.p)).map(d => {
+                const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
+                return `<tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
+                    <td class="px-5 py-3 text-center text-sm text-slate-600">${d.config.infra || '-'}</td>
+                    <td class="px-5 py-3 text-center text-sm text-slate-600">${d.config.licenca || '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.recLic > 0 ? formatCurrency(d.recLic) : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.recInfra > 0 ? formatCurrency(d.recInfra) : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold text-emerald-700">${d.recTotal > 0 ? formatCurrency(d.recTotal) : '-'}</td>
+                </tr>`;
+            }).join('');
+
+            // Chart 1: Rentabilidade — horizontal grouped bars
+            const chartLabels = projData.map(d => d.p.replace(/^RPA\s*-\s*/i, ''));
+            const barHeight   = Math.max(240, chartLabels.length * 36 + 80);
+            const profCanvas  = document.getElementById('chartFinancialProfitability');
+            profCanvas.parentElement.style.height = barHeight + 'px';
 
             renderChart('chartFinancialProfitability', 'bar', {
-                labels: projLabels,
+                labels: chartLabels,
                 datasets: [
-                    { label: 'Vendido', data: revenueData, backgroundColor: '#003366' },
-                    { label: 'Custo', data: costData, backgroundColor: '#f97316' }
+                    { label: 'Vendido R$', data: projData.map(d => d.sold), backgroundColor: '#003366' },
+                    { label: 'Custo R$',   data: projData.map(d => d.cost), backgroundColor: '#f97316' }
                 ]
+            }, {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                    datalabels: { display: false },
+                    tooltip: { callbacks: { label: ctx => ' ' + formatCurrency(ctx.raw) } }
+                },
+                scales: {
+                    x: { ticks: { callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+                    y: { ticks: { font: { size: 10 } } }
+                }
             });
 
-            let accumulated = 0, burndown = {};
-            state.filteredRows.forEach(row => {
-                const rate = state.projectConfigs[row.projeto]?.hourlyRate || 0;
-                burndown[row.mesAno] = (burndown[row.mesAno] || 0) + (row.horas * rate);
+            // Chart 2: Evolução Financeira — two accumulated lines
+            const costByMonth = {};
+            state.rawRows.forEach(row => {
+                const rate = state.projectConfigs[row.projeto]?.hourlyRate || 195;
+                if (!state.projectConfigs[row.projeto] || state.projectConfigs[row.projeto].active === false) return;
+                costByMonth[row.mesAno] = (costByMonth[row.mesAno] || 0) + (row.horas * rate);
             });
-            const sm = Object.keys(burndown).sort();
+            const months = Object.keys(costByMonth).sort();
+            let accCost = 0;
+            const accCostLine = months.map(m => { accCost += costByMonth[m]; return accCost; });
+            const accRevLine  = months.map((_, i) => totalRevenue + totalRecorrente * (i + 1));
+
             renderChart('chartFinancialBurndown', 'line', {
-                labels: sm,
-                datasets: [{ label: 'Custo Acumulado', data: sm.map(m => accumulated += burndown[m]), borderColor: '#dc2626', fill: false }]
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Receita Acumulada',
+                        data: accRevLine,
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22,163,74,0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Custo Acumulado',
+                        data: accCostLine,
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220,38,38,0.06)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3
+                    }
+                ]
+            }, {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                    datalabels: { display: false },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + formatCurrency(ctx.raw) } }
+                },
+                scales: {
+                    x: { ticks: { font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+                    y: { ticks: { callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#f1f5f9' } }
+                }
             });
         }
 
@@ -531,44 +1006,194 @@
             const tbody = document.getElementById('tableProdutividadeBody');
             tbody.innerHTML = '';
 
+            const devBlocksContainer = document.getElementById('devBlocksContainer');
+            devBlocksContainer.innerHTML = '';
+            window._devRowsMap = {};
+
+            const devNotes = JSON.parse(localStorage.getItem('dash_dev_notes') || '{}');
+
             state.developers.forEach(dev => {
-                // Busca por nome do dev na coluna Usuário OU Comentário
+                // Período filtrado: usado para KPIs, pizza e tabela
                 const devRows = state.filteredRows.filter(r =>
                     r.usuario.toLowerCase().includes(dev.toLowerCase()) ||
                     r.comentario.toLowerCase().includes(dev.toLowerCase())
                 );
                 if (devRows.length === 0) return;
 
+                // Histórico completo: usado para o gráfico mensal
+                const allDevRows = state.rawRows.filter(r =>
+                    r.usuario.toLowerCase().includes(dev.toLowerCase()) ||
+                    r.comentario.toLowerCase().includes(dev.toLowerCase())
+                );
+
                 const totalH = devRows.reduce((acc, r) => acc + r.horas, 0);
                 const efetividade = expected > 0 ? (totalH / expected) * 100 : 0;
-                const hAdm = devRows.filter(r => r.tarefa.toLowerCase().includes('adm') || r.projeto.toLowerCase().includes('interno')).reduce((a, b) => a + b.horas, 0);
+
+                // Horas Adm = horas no projeto "RPA - Horas Administrativas"
+                const hAdm = devRows
+                    .filter(r => r.projeto.toLowerCase().includes('administrativ'))
+                    .reduce((a, b) => a + b.horas, 0);
                 const hProj = totalH - hAdm;
+
+                const devId = dev.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const savedObs = (devNotes[devId] || {}).obs || '';
+                const savedAus = (devNotes[devId] || {}).aus || '';
 
                 tbody.innerHTML += `
                     <tr>
                         <td class="font-bold text-left">${dev}</td>
                         <td class="font-bold">${totalH.toFixed(2)}</td>
-                        <td>${formatDateStr(state.meta.date)}</td>
                         <td class="font-bold ${efetividade >= 100 ? 'text-green-600' : 'text-red-600'}">${efetividade.toFixed(2)}%</td>
-                        <td class="text-[10px] text-slate-400 italic">-</td>
-                        <td>-</td>
+                        <td style="padding:4px 8px;min-width:140px">
+                            <input type="text" value="${savedObs.replace(/"/g, '&quot;')}"
+                                style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:3px 6px;font-size:0.75rem"
+                                onchange="saveDevNote('${devId}','obs',this.value)"
+                                placeholder="Observação...">
+                        </td>
+                        <td style="padding:4px 8px;min-width:80px">
+                            <input type="number" value="${savedAus}" min="0" step="0.5"
+                                style="width:100%;border:1px solid #cbd5e1;border-radius:4px;padding:3px 6px;font-size:0.75rem;text-align:center"
+                                onchange="saveDevNote('${devId}','aus',this.value)"
+                                placeholder="0">
+                        </td>
                         <td>${hAdm.toFixed(2)}</td>
                         <td>${hProj.toFixed(2)}</td>
-                        <td>${totalH > 0 ? ((hProj/totalH)*100).toFixed(1) : 0}%</td>
+                        <td>${totalH > 0 ? ((hProj / totalH) * 100).toFixed(1) : 0}%</td>
                     </tr>`;
+
+                // Gráfico mensal: todos os meses históricos (rawRows)
+                const allMonthly = {};
+                allDevRows.forEach(r => { if (r.mesAno) allMonthly[r.mesAno] = (allMonthly[r.mesAno] || 0) + r.horas; });
+                const sortedMonths = Object.keys(allMonthly).sort();
+
+                // Pizza: distribuição por projeto no período filtrado
+                const projectHours = {};
+                devRows.forEach(r => { projectHours[r.projeto] = (projectHours[r.projeto] || 0) + r.horas; });
+                const projNames = Object.keys(projectHours).sort();
+                const projColors = generateColors(projNames.length);
+
+                window._devRowsMap[devId] = devRows;
+
+                const block = document.createElement('div');
+                block.className = 'bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid';
+                block.innerHTML = `
+                    <div class="px-6 py-4 border-b border-slate-200 bg-brand-900 text-white flex items-center gap-3">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        <h3 class="text-base font-semibold">${dev}</h3>
+                        <span class="ml-auto text-sm opacity-80">${totalH.toFixed(1)}h no período · Efetividade: <strong>${efetividade.toFixed(1)}%</strong></span>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-700 mb-3">Evolução Mensal de Horas <span class="text-xs font-normal text-slate-400">(histórico completo)</span></h4>
+                                <div class="h-56"><canvas id="chart_monthly_${devId}"></canvas></div>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-700 mb-3">Distribuição por Projeto <span class="text-xs font-normal text-slate-400">(período filtrado)</span></h4>
+                                <div class="h-56"><canvas id="chart_proj_${devId}"></canvas></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                <h4 class="text-sm font-semibold text-slate-700">Detalhamento de Apontamentos</h4>
+                                <select id="filter_proj_${devId}" onchange="filterDevTable('${devId}')" class="border border-slate-300 rounded-md px-3 py-1.5 text-sm min-w-[180px]">
+                                    <option value="ALL">Todos os Projetos</option>
+                                    ${projNames.map(p => `<option value="${p}">${p}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="overflow-x-auto rounded border border-slate-200">
+                                <table class="min-w-full custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:18px"></th>
+                                            <th style="text-align:left">Tarefa</th>
+                                            <th>Data</th>
+                                            <th>Horas</th>
+                                            <th style="text-align:left">Observação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody_dev_${devId}"></tbody>
+                                    <tfoot>
+                                        <tr style="background:#f8fafc;font-weight:600">
+                                            <td colspan="3" style="text-align:right;padding:8px;border:1px solid #e2e8f0;font-size:0.85rem">Total geral:</td>
+                                            <td id="total_dev_${devId}" style="text-align:center;padding:8px;border:1px solid #e2e8f0;font-size:0.85rem">${totalH.toFixed(2)}h</td>
+                                            <td style="border:1px solid #e2e8f0"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>`;
+
+                devBlocksContainer.appendChild(block);
+                lucide.createIcons();
+
+                renderDevTableRows(devId, devRows);
+
+                renderChart(`chart_monthly_${devId}`, 'bar', {
+                    labels: sortedMonths.map(formatMesAno),
+                    datasets: [{
+                        label: 'Horas Apontadas',
+                        data: sortedMonths.map(m => parseFloat(allMonthly[m].toFixed(2))),
+                        backgroundColor: '#0055A4',
+                        borderRadius: 4
+                    }]
+                }, {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: { display: false },
+                        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toFixed(2)}h` } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                });
+
+                const pieTotal = projNames.reduce((acc, p) => acc + projectHours[p], 0);
+                renderChart(`chart_proj_${devId}`, 'pie', {
+                    labels: projNames,
+                    datasets: [{
+                        data: projNames.map(p => parseFloat(projectHours[p].toFixed(2))),
+                        backgroundColor: projColors,
+                        borderWidth: 1
+                    }]
+                }, {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 }, padding: 8 } },
+                        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toFixed(2)}h` } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 11 },
+                            textShadowBlur: 4,
+                            textShadowColor: 'rgba(0,0,0,0.4)',
+                            formatter: (value) => `${value.toFixed(1)}h`,
+                            display: (ctx) => (ctx.dataset.data[ctx.dataIndex] / pieTotal) >= 0.04
+                        }
+                    }
+                });
             });
         }
 
         // =============================================
         // UTILITÁRIOS
         // =============================================
-        function renderChart(id, type, data) {
+        function renderChart(id, type, data, customOptions) {
             if (state.chartInstances[id]) state.chartInstances[id].destroy();
             const ctx = document.getElementById(id).getContext('2d');
-            state.chartInstances[id] = new Chart(ctx, {
-                type, data,
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
-            });
+            const options = customOptions || {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                    datalabels: { display: false }
+                }
+            };
+            state.chartInstances[id] = new Chart(ctx, { type, data, options });
         }
 
         function switchTab(tab) {
@@ -644,6 +1269,87 @@
         function formatHours(h) { return (h || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + 'h'; }
         function formatCurrency(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0); }
         function formatDateStr(s) { if (!s) return ''; const parts = s.split('-'); if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; return s; }
+        function formatMesAno(mesAno) {
+            if (!mesAno || mesAno.length < 7) return mesAno;
+            const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+            const parts = mesAno.split('-');
+            return `${months[parseInt(parts[1]) - 1]}/${parts[0]}`;
+        }
+        function generateColors(n) {
+            const palette = ['#0055A4','#f97316','#10b981','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#84cc16','#ec4899','#14b8a6','#a855f7','#003366'];
+            return Array.from({ length: n }, (_, i) => palette[i % palette.length]);
+        }
+        function renderDevTableRows(devId, rows) {
+            const tbody = document.getElementById(`tbody_dev_${devId}`);
+            const totalEl = document.getElementById(`total_dev_${devId}`);
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            let total = 0;
+
+            // Agrupa por projeto mantendo a ordem de aparição
+            const grouped = {};
+            const order = [];
+            rows.forEach(r => {
+                total += r.horas;
+                if (!grouped[r.projeto]) { grouped[r.projeto] = []; order.push(r.projeto); }
+                grouped[r.projeto].push(r);
+            });
+
+            order.forEach(projeto => {
+                const projRows = grouped[projeto];
+                const projTotal = projRows.reduce((a, r) => a + r.horas, 0);
+                const projKey = (devId + '_' + projeto).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const rowClass = `proj-detail-${projKey}`;
+
+                tbody.innerHTML += `
+                    <tr style="cursor:pointer;background:#eff6ff" onclick="toggleProjectRows('${projKey}')">
+                        <td colspan="5" style="padding:9px 12px;text-align:left;border:1px solid #bfdbfe;border-top:2px solid #93c5fd">
+                            <span style="display:flex;align-items:center;justify-content:space-between">
+                                <span style="display:flex;align-items:center;gap:8px">
+                                    <span id="arrow_${projKey}" style="font-size:10px;color:#0055A4;transition:transform 0.2s">▶</span>
+                                    <strong style="color:#003366;font-size:0.85rem">${projeto}</strong>
+                                    <span style="color:#94a3b8;font-size:0.72rem">${projRows.length} apontamento${projRows.length > 1 ? 's' : ''}</span>
+                                </span>
+                                <span style="font-weight:700;color:#003366;font-size:0.85rem">${projTotal.toFixed(2)}h</span>
+                            </span>
+                        </td>
+                    </tr>`;
+
+                projRows.forEach(r => {
+                    tbody.innerHTML += `
+                        <tr class="${rowClass}" style="display:none;background:#fafcff">
+                            <td style="width:18px;border-left:3px solid #0055A4;background:#e0eeff;padding:0"></td>
+                            <td style="text-align:left;font-size:0.8rem;color:#334155;padding-left:10px">${r.tarefa}</td>
+                            <td style="font-size:0.8rem">${formatDateStr(r.data)}</td>
+                            <td style="font-weight:600;font-size:0.8rem">${r.horas.toFixed(2)}h</td>
+                            <td style="text-align:left;font-size:0.75rem;color:#94a3b8;font-style:italic">${r.comentario || '-'}</td>
+                        </tr>`;
+                });
+            });
+
+            if (totalEl) totalEl.textContent = total.toFixed(2) + 'h';
+        }
+
+        function toggleProjectRows(projKey) {
+            const rows = document.querySelectorAll(`.proj-detail-${projKey}`);
+            const arrow = document.getElementById(`arrow_${projKey}`);
+            const isHidden = rows.length > 0 && rows[0].style.display === 'none';
+            rows.forEach(r => r.style.display = isHidden ? '' : 'none');
+            if (arrow) arrow.textContent = isHidden ? '▼' : '▶';
+        }
+
+        function filterDevTable(devId) {
+            const filter = document.getElementById(`filter_proj_${devId}`).value;
+            const allRows = (window._devRowsMap || {})[devId] || [];
+            const filtered = filter === 'ALL' ? allRows : allRows.filter(r => r.projeto === filter);
+            renderDevTableRows(devId, filtered);
+        }
+        function saveDevNote(devId, field, value) {
+            const notes = JSON.parse(localStorage.getItem('dash_dev_notes') || '{}');
+            if (!notes[devId]) notes[devId] = {};
+            notes[devId][field] = value;
+            localStorage.setItem('dash_dev_notes', JSON.stringify(notes));
+        }
 
         // Atualiza automaticamente a cada 5 minutos
         setInterval(loadAllData, 5 * 60 * 1000);
