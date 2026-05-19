@@ -1473,33 +1473,47 @@
             const devName = h3 ? h3.textContent.trim() : devId;
             const filename = `Dashboard_Dev_${devName.replace(/[^a-zA-Z0-9]/g, '_')}_${state.meta.date || 'relatorio'}.pdf`;
 
-            // Usa o próprio botão como indicador de carregamento (sem overlay — overlay cobre o bloco e html2canvas o capturaria em branco)
             const btn = block.querySelector('.dev-dl-btn');
             const origBtnHtml = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
 
+            const canvasReplacements = [];
+
             try {
-                // Rola até o bloco para garantir posição correta no html2canvas
-                block.scrollIntoView({ behavior: 'instant', block: 'start' });
-                await new Promise(r => setTimeout(r, 200));
+                block.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+                await new Promise(r => setTimeout(r, 250));
+
+                // html2canvas não captura pixel data de <canvas> (Chart.js) — substitui por <img> com snapshot
+                block.querySelectorAll('canvas').forEach(canvas => {
+                    const img = document.createElement('img');
+                    img.src    = canvas.toDataURL('image/png');
+                    img.style.cssText = `width:${canvas.offsetWidth}px;height:${canvas.offsetHeight}px;display:block`;
+                    canvas.parentNode.replaceChild(img, canvas);
+                    canvasReplacements.push({ img, canvas });
+                });
 
                 // Oculta controles que não devem ir para o PDF
                 const toHide = [...block.querySelectorAll('select, .dev-dl-btn')];
-                toHide.forEach(el => { el.style.display = 'none'; });
+                toHide.forEach(el => { el.style.visibility = 'hidden'; });
 
                 await html2pdf().set({
                     margin: 5,
                     filename,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: -window.scrollX, scrollY: -window.scrollY },
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 1.5, useCORS: true, logging: false,
+                                   scrollX: -window.scrollX, scrollY: -window.scrollY },
                     jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
                 }).from(block).save();
 
-                toHide.forEach(el => { el.style.display = ''; });
+                toHide.forEach(el => { el.style.visibility = ''; });
             } catch (e) {
                 console.error('Erro ao gerar PDF:', e);
                 alert('Não foi possível gerar o PDF. Verifique o console (F12).');
             } finally {
+                // Restaura canvases independente de erro
+                canvasReplacements.forEach(({ img, canvas }) => {
+                    if (img.parentNode) img.parentNode.replaceChild(canvas, img);
+                });
                 if (btn) { btn.disabled = false; btn.innerHTML = origBtnHtml; lucide.createIcons(); }
             }
         }
@@ -1526,7 +1540,7 @@
                         <p class="mt-0.5">${apiTag}</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <label class="text-xs text-slate-400 whitespace-nowrap">Horas manuais:</label>
+                        <label class="text-xs text-slate-400 whitespace-nowrap">Horas consumidas:</label>
                         <input type="number" step="0.1" min="0" value="${manualHours}"
                             class="w-24 border border-slate-300 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-brand-500"
                             placeholder="—"
