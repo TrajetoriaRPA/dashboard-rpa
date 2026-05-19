@@ -1477,22 +1477,10 @@
             const origBtnHtml = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
 
-            const canvasReplacements = [];
-
             try {
                 block.scrollIntoView({ behavior: 'instant', block: 'nearest' });
                 await new Promise(r => setTimeout(r, 250));
 
-                // html2canvas não captura pixel data de <canvas> (Chart.js) — substitui por <img> com snapshot
-                block.querySelectorAll('canvas').forEach(canvas => {
-                    const img = document.createElement('img');
-                    img.src    = canvas.toDataURL('image/png');
-                    img.style.cssText = `width:${canvas.offsetWidth}px;height:${canvas.offsetHeight}px;display:block`;
-                    canvas.parentNode.replaceChild(img, canvas);
-                    canvasReplacements.push({ img, canvas });
-                });
-
-                // Oculta controles que não devem ir para o PDF
                 const toHide = [...block.querySelectorAll('select, .dev-dl-btn')];
                 toHide.forEach(el => { el.style.visibility = 'hidden'; });
 
@@ -1500,8 +1488,28 @@
                     margin: 5,
                     filename,
                     image: { type: 'jpeg', quality: 0.95 },
-                    html2canvas: { scale: 1.5, useCORS: true, logging: false,
-                                   scrollX: -window.scrollX, scrollY: -window.scrollY },
+                    html2canvas: {
+                        scale: 1.5,
+                        useCORS: true,
+                        logging: false,
+                        scrollX: -window.scrollX,
+                        scrollY: -window.scrollY,
+                        onclone: function(clonedDoc) {
+                            // html2canvas clona o DOM antes de renderizar — canvas clonados ficam sempre vazios.
+                            // Copia os pixels dos canvas originais (Chart.js) para os clones via drawImage.
+                            const clonedBlock  = clonedDoc.querySelector(`[data-dev-id="${devId}"]`);
+                            if (!clonedBlock) return;
+                            const origList   = Array.from(block.querySelectorAll('canvas'));
+                            const cloneList  = Array.from(clonedBlock.querySelectorAll('canvas'));
+                            origList.forEach((orig, i) => {
+                                const cloned = cloneList[i];
+                                if (!cloned) return;
+                                cloned.width  = orig.width;
+                                cloned.height = orig.height;
+                                cloned.getContext('2d').drawImage(orig, 0, 0);
+                            });
+                        }
+                    },
                     jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
                 }).from(block).save();
 
@@ -1510,10 +1518,6 @@
                 console.error('Erro ao gerar PDF:', e);
                 alert('Não foi possível gerar o PDF. Verifique o console (F12).');
             } finally {
-                // Restaura canvases independente de erro
-                canvasReplacements.forEach(({ img, canvas }) => {
-                    if (img.parentNode) img.parentNode.replaceChild(canvas, img);
-                });
                 if (btn) { btn.disabled = false; btn.innerHTML = origBtnHtml; lucide.createIcons(); }
             }
         }
