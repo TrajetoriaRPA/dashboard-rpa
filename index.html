@@ -196,9 +196,12 @@
             </div>
             <!-- Tabela 1: Saúde Financeira -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
-                <div class="px-6 py-4 border-b border-slate-200">
-                    <h3 class="text-base font-semibold text-slate-800">Saúde Financeira por Projeto</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Budget, receita contratada, custo do desenvolvedor e margem por projeto</p>
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-800">Saúde Financeira por Projeto</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Todos os projetos da planilha Config HTML · inclui projetos sem apontamentos na API</p>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Custo/h: R$ 195,00</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
@@ -207,7 +210,6 @@
                                 <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Budget (h)</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Vendido R$</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo/h</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Horas Consumidas</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo de Projeto</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Margem R$</th>
@@ -222,9 +224,12 @@
             </div>
             <!-- Tabela 1b: Recorrências de Sustentação -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
-                <div class="px-6 py-4 border-b border-slate-200">
-                    <h3 class="text-base font-semibold text-slate-800">Recorrências de Sustentação</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Projetos com budget recorrente mensal — receita contratada, custo e margem acumulada</p>
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-800">Recorrências de Sustentação</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Projetos com budget recorrente mensal — receita contratada, custo e margem acumulada</p>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Custo/h: R$ 195,00</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
@@ -233,7 +238,6 @@
                                 <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Budget (h/mês)</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Vendido R$</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo/h</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Horas Consumidas</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo de Projeto</th>
                                 <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Margem R$</th>
@@ -309,6 +313,7 @@
                 <nav class="flex space-x-6">
                     <button onclick="switchConfigTab('devs')" id="cfg-tab-devs" class="py-3 text-sm font-medium border-b-2 border-brand-900 text-brand-900">Desenvolvedores</button>
                     <button onclick="switchConfigTab('metas')" id="cfg-tab-metas" class="py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-brand-900">Metas & Calendário</button>
+                    <button onclick="switchConfigTab('custos')" id="cfg-tab-custos" class="py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-brand-900">Horas Manuais</button>
                 </nav>
             </div>
             <div class="p-6 overflow-y-auto flex-1">
@@ -324,6 +329,10 @@
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Data de Apuração</label><input type="date" id="apurationDate" class="w-full border border-slate-300 rounded-md px-3 py-2"></div>
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Dias Úteis no Período</label><input type="number" id="workingDays" class="w-full border border-slate-300 rounded-md px-3 py-2" value="22"></div>
                     <div><label class="block text-sm font-medium text-slate-700 mb-1">Horas Úteis por Dia</label><input type="number" step="0.1" id="workingHours" class="w-full border border-slate-300 rounded-md px-3 py-2" value="8.8"></div>
+                </div>
+                <div id="cfg-view-custos" class="hidden">
+                    <p class="text-xs text-slate-500 mb-4">Informe manualmente as horas consumidas para projetos sem apontamentos na API. Quando preenchido, este valor é usado nos cálculos financeiros no lugar do dado ausente.</p>
+                    <div id="projManualHours" class="space-y-2 max-h-96 overflow-y-auto pr-1"></div>
                 </div>
             </div>
             <div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
@@ -342,6 +351,7 @@
         // =============================================
         const SHEET_DADOS_BRUTOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQPHxzUbk4_mGNoG_8gsyLnDHBZWoHni6eJbs_JW5LkVDjzbk8ZpUtfADtq_sm3UwgY5VSxogGc_5kI/pub?gid=0&single=true&output=csv";
         const SHEET_CONFIG_HTML  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQPHxzUbk4_mGNoG_8gsyLnDHBZWoHni6eJbs_JW5LkVDjzbk8ZpUtfADtq_sm3UwgY5VSxogGc_5kI/pub?gid=1693822247&single=true&output=csv";
+        const HOURLY_RATE = 195; // custo/h fixo para todos os projetos
 
         let state = {
             rawRows: [],
@@ -349,6 +359,7 @@
             projects: new Set(),
             developers: [],
             projectConfigs: {},
+            configProjectNames: [],
             meta: { value: 100, date: '', days: 22, hoursPerDay: 8.8 },
             chartInstances: {}
         };
@@ -408,15 +419,17 @@
 
         // =============================================
         // PROCESSA ABA CONFIG HTML
-        // Colunas: Ativo, Projeto, Budget, Vendido R$, Custo/h, Obs., Data, Infra, Licença, Receita de Licença, Receita Infra
+        // Colunas: Ativo, Projeto, Budget, Vendido R$, Obs., Data, Infra, Licença, Receita de Licença, Receita Infra
         // =============================================
         function processConfigData(results) {
             const localConfigs = JSON.parse(localStorage.getItem('dash_proj_configs')) || {};
+            state.configProjectNames = [];
 
             results.data.forEach(row => {
                 const nome = (row['Projeto'] || '').trim();
                 if (!nome) return;
 
+                state.configProjectNames.push(nome);
                 const ativoStr = (row['Ativo'] || '').trim().toLowerCase();
                 const ativo = ativoStr === 'sim' || ativoStr === 'true' || ativoStr === '1' || ativoStr === 'x';
 
@@ -424,7 +437,7 @@
                     active: localConfigs[nome]?.active ?? ativo,
                     budgetHours: parseFloat((row['Budget'] || '0').replace(',', '.')) || 0,
                     soldValue: parseFloat((row['Vendido R$'] || '0').replace(/[R$\s.]/g, '').replace(',', '.')) || 0,
-                    hourlyRate: parseFloat((row['Custo/h'] || '0').replace(',', '.')) || 195,
+                    manualHours: localConfigs[nome]?.manualHours ?? null,
                     obs: row['Obs.'] || '',
                     obsDate: row['Data'] || '',
                     infra: (row['Infra'] || '').trim(),
@@ -461,9 +474,10 @@
             state.projects = new Set(state.rawRows.map(r => r.projeto).sort());
 
             // Garante que projetos dos dados_brutos existam nas configs
+            const _lc = JSON.parse(localStorage.getItem('dash_proj_configs')) || {};
             state.projects.forEach(p => {
                 if (!state.projectConfigs[p]) {
-                    state.projectConfigs[p] = { active: true, budgetHours: 0, soldValue: 0, hourlyRate: 195, obs: '', obsDate: '' };
+                    state.projectConfigs[p] = { active: true, budgetHours: 0, soldValue: 0, manualHours: _lc[p]?.manualHours ?? null, obs: '', obsDate: '' };
                 }
             });
 
@@ -839,75 +853,106 @@
         }
 
         function renderGerencial() {
-            const isAdmG = p => p.toLowerCase().includes('administrativ');
-            const activeProjects = Array.from(state.projects)
-                .filter(p => p.startsWith('RPA -') && !isAdmG(p) && state.projectConfigs[p]?.active !== false)
+            const isAdmG  = p => p.toLowerCase().includes('administrativ');
+            const isSustG = p => p.toLowerCase().includes('sustenta');
+
+            // Usa TODOS os projetos da aba Config HTML (não filtra por ativo)
+            const allConfigProjects = (state.configProjectNames || [])
+                .filter(p => p.startsWith('RPA -') && !isAdmG(p))
                 .sort();
 
             let totalRevenue = 0, totalCost = 0, totalRecorrente = 0;
 
-            // Build per-project data
-            const projData = activeProjects.map(p => {
-                const config    = state.projectConfigs[p] || {};
-                const sold      = parseFloat(config.soldValue      || 0);
-                const rate      = parseFloat(config.hourlyRate     || 195);
-                const budget    = parseFloat(config.budgetHours    || 0);
-                const recLic    = parseFloat(config.receitaLicenca || 0);
-                const recInfra  = parseFloat(config.receitaInfra   || 0);
-                const horasAll  = state.rawRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
-                const horasFiltro = state.filteredRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
-                const cost      = horasAll * rate;
-                const costFiltro = horasFiltro * rate;
-                const margem    = sold - cost;
-                const pctMargem = sold > 0 ? (margem / sold) * 100 : 0;
-                const recTotal  = recLic + recInfra;
+            const projData = allConfigProjects.map(p => {
+                const config   = state.projectConfigs[p] || {};
+                const sold     = parseFloat(config.soldValue      || 0);
+                const budget   = parseFloat(config.budgetHours    || 0);
+                const recLic   = parseFloat(config.receitaLicenca || 0);
+                const recInfra = parseFloat(config.receitaInfra   || 0);
+
+                // Determina horas consumidas: API > manual > ausente
+                const apiHorasAll   = state.rawRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
+                const hasApiData    = state.rawRows.some(r => r.projeto === p);
+                const manualHours   = config.manualHours ?? null;
+                const apiHorasFilt  = state.filteredRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
+
+                let horasAll, horasFiltro, horasStatus;
+                if (hasApiData) {
+                    horasAll    = apiHorasAll;
+                    horasFiltro = apiHorasFilt;
+                    horasStatus = 'api';
+                } else if (manualHours !== null) {
+                    horasAll    = manualHours;
+                    horasFiltro = manualHours;
+                    horasStatus = 'manual';
+                } else {
+                    horasAll    = 0;
+                    horasFiltro = 0;
+                    horasStatus = 'absent';
+                }
+
+                const cost       = horasAll    * HOURLY_RATE;
+                const costFiltro = horasFiltro * HOURLY_RATE;
+                const margem     = sold - cost;
+                const pctMargem  = sold > 0 ? (margem / sold) * 100 : 0;
+                const recTotal   = recLic + recInfra;
                 totalRevenue    += sold;
                 totalCost       += cost;
                 totalRecorrente += recTotal;
-                return { p, config, sold, rate, budget, horasAll, horasFiltro, cost, costFiltro, margem, pctMargem, recLic, recInfra, recTotal };
+                return { p, config, sold, budget, horasAll, horasFiltro, cost, costFiltro, margem, pctMargem, recLic, recInfra, recTotal, horasStatus };
             });
 
             // KPIs
-            document.getElementById('kpiTotalRevenue').textContent  = formatCurrency(totalRevenue);
-            document.getElementById('kpiTotalCost').textContent     = formatCurrency(totalCost);
-            document.getElementById('kpiTotalMargin').textContent   = formatCurrency(totalRevenue - totalCost);
-            document.getElementById('kpiRecorrente').textContent    = formatCurrency(totalRecorrente);
+            document.getElementById('kpiTotalRevenue').textContent = formatCurrency(totalRevenue);
+            document.getElementById('kpiTotalCost').textContent    = formatCurrency(totalCost);
+            document.getElementById('kpiTotalMargin').textContent  = formatCurrency(totalRevenue - totalCost);
+            document.getElementById('kpiRecorrente').textContent   = formatCurrency(totalRecorrente);
 
-            const isSustG = p => p.toLowerCase().includes('sustenta');
             const mainProjData = projData.filter(d => !isSustG(d.p));
             const sustProjData = projData.filter(d =>  isSustG(d.p));
 
             const buildHealthRows = (arr, useFiltro = false) => arr.map(d => {
-                const horas       = useFiltro ? d.horasFiltro : d.horasAll;
-                const custo       = useFiltro ? d.costFiltro  : d.cost;
-                const margem      = d.sold - custo;
-                const pct         = d.sold > 0 ? (margem / d.sold) * 100 : 0;
-                const shortName   = d.p.replace(/^RPA\s*-\s*/i, '');
+                const horas     = useFiltro ? d.horasFiltro : d.horasAll;
+                const custo     = useFiltro ? d.costFiltro  : d.cost;
+                const margem    = d.sold - custo;
+                const pct       = d.sold > 0 ? (margem / d.sold) * 100 : 0;
+                const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
                 const margemColor = margem >= 0 ? 'text-emerald-700' : 'text-red-600';
                 const pctColor    = pct    >= 0 ? 'text-emerald-700' : 'text-red-600';
+
+                let horasCell, custoCell, margemCell, pctCell;
+                if (d.horasStatus === 'absent') {
+                    horasCell  = `<span class="inline-flex items-center gap-1 text-amber-600 text-xs font-medium"><span>⚠</span> Registro ausente da API</span>`;
+                    custoCell  = '<span class="text-slate-300">—</span>';
+                    margemCell = '<span class="text-slate-300">—</span>';
+                    pctCell    = '<span class="text-slate-300">—</span>';
+                } else {
+                    horasCell  = d.horasStatus === 'manual'
+                        ? `${horas.toFixed(1)}h <span class="text-slate-400 text-[10px]">(manual)</span>`
+                        : `${horas.toFixed(1)}h`;
+                    custoCell  = formatCurrency(custo);
+                    margemCell = `<span class="${margemColor}">${formatCurrency(margem)}</span>`;
+                    pctCell    = `<span class="${pctColor}">${pct.toFixed(1)}%</span>`;
+                }
+
                 return `<tr class="hover:bg-slate-50">
                     <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
                     <td class="px-5 py-3 text-right text-sm text-slate-600">${d.budget > 0 ? d.budget.toFixed(1) + 'h' : '-'}</td>
                     <td class="px-5 py-3 text-right text-sm text-slate-800 font-medium">${formatCurrency(d.sold)}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.rate > 0 ? formatCurrency(d.rate) : '-'}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${horas.toFixed(1)}h</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${formatCurrency(custo)}</td>
-                    <td class="px-5 py-3 text-right text-sm font-semibold ${margemColor}">${formatCurrency(margem)}</td>
-                    <td class="px-5 py-3 text-right text-sm font-semibold ${pctColor}">${pct.toFixed(1)}%</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${horasCell}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${custoCell}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold">${margemCell}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold">${pctCell}</td>
                     <td class="px-5 py-3 text-left  text-sm text-slate-500 max-w-xs truncate" title="${d.config.obs || ''}">${d.config.obs || '-'}</td>
                     <td class="px-5 py-3 text-center text-sm text-slate-400">${d.config.obsDate || '-'}</td>
                 </tr>`;
             }).join('');
 
-            // Table 1: Saúde Financeira (projetos principais — histórico completo)
             document.getElementById('tableFinancialHealth').innerHTML = buildHealthRows(mainProjData, false);
+            document.getElementById('tableFinancialSust').innerHTML   = buildHealthRows(sustProjData, true);
 
-            // Table 1b: Recorrências de Sustentação (horas do período filtrado)
-            document.getElementById('tableFinancialSust').innerHTML = buildHealthRows(sustProjData, true);
-
-            // Table 2: Infra e Licenças (sem adm nem sustentação)
-            const tbInfra = document.getElementById('tableInfraLicenca');
-            tbInfra.innerHTML = projData.filter(d => !isSustG(d.p)).map(d => {
+            // Tabela Infra e Licenças
+            document.getElementById('tableInfraLicenca').innerHTML = projData.filter(d => !isSustG(d.p)).map(d => {
                 const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
                 return `<tr class="hover:bg-slate-50">
                     <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
@@ -919,12 +964,10 @@
                 </tr>`;
             }).join('');
 
-            // Chart 1: Rentabilidade — horizontal grouped bars
+            // Gráfico 1: Rentabilidade
             const chartLabels = projData.map(d => d.p.replace(/^RPA\s*-\s*/i, ''));
             const barHeight   = Math.max(240, chartLabels.length * 36 + 80);
-            const profCanvas  = document.getElementById('chartFinancialProfitability');
-            profCanvas.parentElement.style.height = barHeight + 'px';
-
+            document.getElementById('chartFinancialProfitability').parentElement.style.height = barHeight + 'px';
             renderChart('chartFinancialProfitability', 'bar', {
                 labels: chartLabels,
                 datasets: [
@@ -932,9 +975,7 @@
                     { label: 'Custo R$',   data: projData.map(d => d.cost), backgroundColor: '#f97316' }
                 ]
             }, {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
                     datalabels: { display: false },
@@ -946,43 +987,24 @@
                 }
             });
 
-            // Chart 2: Evolução Financeira — two accumulated lines
+            // Gráfico 2: Evolução Financeira Acumulada
             const costByMonth = {};
             state.rawRows.forEach(row => {
-                const rate = state.projectConfigs[row.projeto]?.hourlyRate || 195;
-                if (!state.projectConfigs[row.projeto] || state.projectConfigs[row.projeto].active === false) return;
-                costByMonth[row.mesAno] = (costByMonth[row.mesAno] || 0) + (row.horas * rate);
+                if (isAdmG(row.projeto)) return;
+                costByMonth[row.mesAno] = (costByMonth[row.mesAno] || 0) + (row.horas * HOURLY_RATE);
             });
             const months = Object.keys(costByMonth).sort();
             let accCost = 0;
             const accCostLine = months.map(m => { accCost += costByMonth[m]; return accCost; });
             const accRevLine  = months.map((_, i) => totalRevenue + totalRecorrente * (i + 1));
-
             renderChart('chartFinancialBurndown', 'line', {
                 labels: months,
                 datasets: [
-                    {
-                        label: 'Receita Acumulada',
-                        data: accRevLine,
-                        borderColor: '#16a34a',
-                        backgroundColor: 'rgba(22,163,74,0.08)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3
-                    },
-                    {
-                        label: 'Custo Acumulado',
-                        data: accCostLine,
-                        borderColor: '#dc2626',
-                        backgroundColor: 'rgba(220,38,38,0.06)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3
-                    }
+                    { label: 'Receita Acumulada', data: accRevLine,  borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)',  fill: true, tension: 0.3, pointRadius: 3 },
+                    { label: 'Custo Acumulado',   data: accCostLine, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.06)',   fill: true, tension: 0.3, pointRadius: 3 }
                 ]
             }, {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
                     datalabels: { display: false },
@@ -1076,11 +1098,15 @@
 
                 const block = document.createElement('div');
                 block.className = 'bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid';
+                block.dataset.devId = devId;
                 block.innerHTML = `
                     <div class="px-6 py-4 border-b border-slate-200 bg-brand-900 text-white flex items-center gap-3">
                         <i data-lucide="user" class="w-5 h-5"></i>
                         <h3 class="text-base font-semibold">${dev}</h3>
                         <span class="ml-auto text-sm opacity-80">${totalH.toFixed(1)}h no período · Efetividade: <strong>${efetividade.toFixed(1)}%</strong></span>
+                        <button onclick="downloadDevPdf('${devId}')" class="dev-dl-btn flex items-center gap-1.5 bg-white bg-opacity-20 hover:bg-opacity-30 border border-white border-opacity-40 px-3 py-1.5 rounded text-xs font-semibold transition" title="Baixar PDF deste desenvolvedor">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar PDF
+                        </button>
                     </div>
                     <div class="p-6 space-y-6">
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1206,12 +1232,13 @@
         }
 
         function switchConfigTab(tab) {
-            ['devs', 'metas'].forEach(t => {
+            ['devs', 'metas', 'custos'].forEach(t => {
                 document.getElementById(`cfg-view-${t}`).classList.add('hidden');
                 document.getElementById(`cfg-tab-${t}`).className = 'py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-brand-900';
             });
             document.getElementById(`cfg-view-${tab}`).classList.remove('hidden');
             document.getElementById(`cfg-tab-${tab}`).className = 'py-3 text-sm font-medium border-b-2 border-brand-900 text-brand-900';
+            if (tab === 'custos') renderManualHoursList();
         }
 
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -1227,6 +1254,23 @@
                 hoursPerDay: parseFloat(document.getElementById('workingHours').value)
             };
             localStorage.setItem('dash_meta', JSON.stringify(state.meta));
+
+            const localProjConfigs = JSON.parse(localStorage.getItem('dash_proj_configs')) || {};
+            document.querySelectorAll('#projManualHours input[data-proj-hours]').forEach(input => {
+                const proj = input.getAttribute('data-proj-hours');
+                const val  = input.value.trim();
+                if (!proj) return;
+                if (!localProjConfigs[proj]) localProjConfigs[proj] = {};
+                if (val !== '' && !isNaN(parseFloat(val))) {
+                    localProjConfigs[proj].manualHours = parseFloat(val);
+                    if (state.projectConfigs[proj]) state.projectConfigs[proj].manualHours = parseFloat(val);
+                } else {
+                    localProjConfigs[proj].manualHours = null;
+                    if (state.projectConfigs[proj]) state.projectConfigs[proj].manualHours = null;
+                }
+            });
+            localStorage.setItem('dash_proj_configs', JSON.stringify(localProjConfigs));
+
             closeModal('configModal');
             if (state.rawRows.length > 0) applyFilters();
         }
@@ -1249,21 +1293,148 @@
             if (name) { state.developers.push(name); document.getElementById('newDevName').value = ''; renderDevListInModal(); }
         }
 
-        function exportToPDF() {
-            const element = document.getElementById('dashboardContent');
-            element.classList.add('pdf-mode');
-            const currentTab = document.querySelector('.tab-active').id.replace('tab-', '');
-            ['operacional', 'gerencial', 'produtividade'].forEach(t => document.getElementById(`view-${t}`).classList.remove('hidden'));
-            const opt = {
-                margin: 5, filename: `Dashboard_RPA_${state.meta.date || 'relatorio'}.pdf`,
+        // Gera e baixa PDF a partir de um elemento já renderizado no DOM
+        async function generatePdf(element, filename) {
+            await html2pdf().set({
+                margin: 5,
+                filename,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 1.5, useCORS: true },
+                html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: -window.scrollY },
                 jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
-            };
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.classList.remove('pdf-mode');
-                switchTab(currentTab);
-            });
+            }).from(element).save();
+        }
+
+        function showExportOverlay(msg) {
+            let ov = document.getElementById('exportOverlay');
+            if (!ov) {
+                ov = document.createElement('div');
+                ov.id = 'exportOverlay';
+                ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,51,102,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;color:white;gap:16px;';
+                ov.innerHTML = '<div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite"></div><p id="exportMsg" style="font-size:14px;font-weight:500;text-align:center;max-width:320px;line-height:1.5"></p>';
+                document.body.appendChild(ov);
+            }
+            document.getElementById('exportMsg').textContent = msg;
+            ov.style.display = 'flex';
+        }
+
+        function updateExportMsg(msg) {
+            const el = document.getElementById('exportMsg');
+            if (el) el.textContent = msg;
+        }
+
+        function hideExportOverlay() {
+            const ov = document.getElementById('exportOverlay');
+            if (ov) ov.style.display = 'none';
+        }
+
+        async function exportToPDF() {
+            const activeTab = document.querySelector('.tab-active');
+            const currentTab = activeTab ? activeTab.id.replace('tab-', '') : 'operacional';
+            showExportOverlay('Gerando PDF...');
+            try {
+                if (currentTab === 'produtividade') {
+                    await exportProdutividadePDF();
+                } else {
+                    await exportSingleTabPDF(currentTab);
+                }
+            } catch (e) {
+                console.error('Erro ao gerar PDF:', e);
+                alert('Não foi possível gerar o PDF. Verifique o console (F12).');
+            } finally {
+                hideExportOverlay();
+            }
+        }
+
+        async function exportSingleTabPDF(tab) {
+            const tabNames = { operacional: 'Operacional', gerencial: 'Financeiro' };
+            // O elemento já está renderizado e visível (usuário está nesta aba)
+            await generatePdf(
+                document.getElementById(`view-${tab}`),
+                `Dashboard_${tabNames[tab] || tab}_${state.meta.date || 'relatorio'}.pdf`
+            );
+        }
+
+        async function exportProdutividadePDF() {
+            // Exporta apenas o resumo (Meta / Dias Úteis / Tabela geral)
+            // Cada desenvolvedor tem seu próprio botão "Baixar PDF" no cabeçalho do bloco
+            const prodView = document.getElementById('view-produtividade');
+            const devContainer = document.getElementById('devBlocksContainer');
+            updateExportMsg('Gerando resumo de produtividade...');
+            devContainer.style.display = 'none';
+            await generatePdf(prodView, `Dashboard_Produtividade_Resumo_${state.meta.date || 'relatorio'}.pdf`);
+            devContainer.style.display = '';
+        }
+
+        async function downloadDevPdf(devId) {
+            const block = document.querySelector(`[data-dev-id="${devId}"]`);
+            if (!block) return;
+
+            const h3 = block.querySelector('h3');
+            const devName = h3 ? h3.textContent.trim() : devId;
+            const filename = `Dashboard_Dev_${devName.replace(/[^a-zA-Z0-9]/g, '_')}_${state.meta.date || 'relatorio'}.pdf`;
+
+            // Usa o próprio botão como indicador de carregamento (sem overlay — overlay cobre o bloco e html2canvas o capturaria em branco)
+            const btn = block.querySelector('.dev-dl-btn');
+            const origBtnHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
+
+            try {
+                // Rola até o bloco para garantir posição correta no html2canvas
+                block.scrollIntoView({ behavior: 'instant', block: 'start' });
+                await new Promise(r => setTimeout(r, 200));
+
+                // Oculta controles que não devem ir para o PDF
+                const toHide = [...block.querySelectorAll('select, .dev-dl-btn')];
+                toHide.forEach(el => { el.style.display = 'none'; });
+
+                await html2pdf().set({
+                    margin: 5,
+                    filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: -window.scrollX, scrollY: -window.scrollY },
+                    jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+                }).from(block).save();
+
+                toHide.forEach(el => { el.style.display = ''; });
+            } catch (e) {
+                console.error('Erro ao gerar PDF:', e);
+                alert('Não foi possível gerar o PDF. Verifique o console (F12).');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = origBtnHtml; lucide.createIcons(); }
+            }
+        }
+
+        function renderManualHoursList() {
+            const container = document.getElementById('projManualHours');
+            if (!container) return;
+            const projects = (state.configProjectNames || []).filter(p => p.startsWith('RPA -')).sort();
+            if (projects.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-400 italic">Nenhum projeto carregado. Atualize os dados primeiro.</p>';
+                return;
+            }
+            container.innerHTML = projects.map(p => {
+                const hasApi      = state.rawRows.some(r => r.projeto === p);
+                const apiHours    = state.rawRows.filter(r => r.projeto === p).reduce((s, r) => s + r.horas, 0);
+                const manualHours = state.projectConfigs[p]?.manualHours ?? '';
+                const shortName   = p.replace(/^RPA\s*-\s*/i, '');
+                const apiTag = hasApi
+                    ? `<span class="text-[10px] text-emerald-600 font-medium">API: ${apiHours.toFixed(1)}h</span>`
+                    : `<span class="text-[10px] text-amber-500 font-medium">⚠ Sem dados na API</span>`;
+                return `<div class="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded border border-slate-200">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-700 truncate">${shortName}</p>
+                        <p class="mt-0.5">${apiTag}</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <label class="text-xs text-slate-400 whitespace-nowrap">Horas manuais:</label>
+                        <input type="number" step="0.1" min="0" value="${manualHours}"
+                            class="w-24 border border-slate-300 rounded-md px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-brand-500"
+                            placeholder="—"
+                            data-proj-hours="${p.replace(/"/g, '&quot;')}">
+                        <span class="text-xs text-slate-400">h</span>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function formatHours(h) { return (h || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1 }) + 'h'; }
