@@ -925,42 +925,6 @@
             const mainProjData = projData.filter(d => !isSustG(d.p));
             const sustProjData = projData.filter(d =>  isSustG(d.p));
 
-            const buildHealthRows = (arr, useFiltro = false) => arr.map(d => {
-                const horas     = useFiltro ? d.horasFiltro : d.horasAll;
-                const custo     = useFiltro ? d.costFiltro  : d.cost;
-                const margem    = d.sold - custo;
-                const pct       = d.sold > 0 ? (margem / d.sold) * 100 : 0;
-                const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
-                const margemColor = margem >= 0 ? 'text-emerald-700' : 'text-red-600';
-                const pctColor    = pct    >= 0 ? 'text-emerald-700' : 'text-red-600';
-
-                let horasCell, custoCell, margemCell, pctCell;
-                if (d.horasStatus === 'absent') {
-                    horasCell  = `<span class="inline-flex items-center gap-1 text-amber-600 text-xs font-medium"><span>⚠</span> Registro ausente da API</span>`;
-                    custoCell  = '<span class="text-slate-300">—</span>';
-                    margemCell = '<span class="text-slate-300">—</span>';
-                    pctCell    = '<span class="text-slate-300">—</span>';
-                } else {
-                    horasCell  = d.horasStatus === 'manual'
-                        ? `${horas.toFixed(1)}h <span class="text-slate-400 text-[10px]">(manual)</span>`
-                        : `${horas.toFixed(1)}h`;
-                    custoCell  = formatCurrency(custo);
-                    margemCell = `<span class="${margemColor}">${formatCurrency(margem)}</span>`;
-                    pctCell    = `<span class="${pctColor}">${pct.toFixed(1)}%</span>`;
-                }
-
-                return `<tr class="hover:bg-slate-50">
-                    <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.budget > 0 ? d.budget.toFixed(1) + 'h' : '-'}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-800 font-medium">${formatCurrency(d.sold)}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${horasCell}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${custoCell}</td>
-                    <td class="px-5 py-3 text-right text-sm font-semibold">${margemCell}</td>
-                    <td class="px-5 py-3 text-right text-sm font-semibold">${pctCell}</td>
-                    <td class="px-5 py-3 text-left  text-sm text-slate-500 max-w-xs truncate" title="${d.config.obs || ''}">${d.config.obs || '-'}</td>
-                    <td class="px-5 py-3 text-center text-sm text-slate-400">${d.config.obsDate || '-'}</td>
-                </tr>`;
-            }).join('');
 
             // Store data for sort/filter (sort state preserved across data refreshes)
             window._gerencialMainData = mainProjData;
@@ -1023,6 +987,45 @@
                     y: { ticks: { callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#f1f5f9' } }
                 }
             });
+        }
+
+        function buildHealthRows(arr, useFiltro) {
+            return arr.map(d => {
+                const horas     = useFiltro ? d.horasFiltro : d.horasAll;
+                const custo     = useFiltro ? d.costFiltro  : d.cost;
+                const margem    = d.sold - custo;
+                const pct       = d.sold > 0 ? (margem / d.sold) * 100 : 0;
+                const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
+                const margemColor = margem >= 0 ? 'text-emerald-700' : 'text-red-600';
+                const pctColor    = pct    >= 0 ? 'text-emerald-700' : 'text-red-600';
+
+                let horasCell, custoCell, margemCell, pctCell;
+                if (d.horasStatus === 'absent') {
+                    horasCell  = `<span class="inline-flex items-center gap-1 text-amber-600 text-xs font-medium"><span>⚠</span> Registro ausente da API</span>`;
+                    custoCell  = '<span class="text-slate-300">—</span>';
+                    margemCell = '<span class="text-slate-300">—</span>';
+                    pctCell    = '<span class="text-slate-300">—</span>';
+                } else {
+                    horasCell  = d.horasStatus === 'manual'
+                        ? `${horas.toFixed(1)}h <span class="text-slate-400 text-[10px]">(manual)</span>`
+                        : `${horas.toFixed(1)}h`;
+                    custoCell  = formatCurrency(custo);
+                    margemCell = `<span class="${margemColor}">${formatCurrency(margem)}</span>`;
+                    pctCell    = `<span class="${pctColor}">${pct.toFixed(1)}%</span>`;
+                }
+
+                return `<tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.budget > 0 ? d.budget.toFixed(1) + 'h' : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-800 font-medium">${formatCurrency(d.sold)}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${horasCell}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${custoCell}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold">${margemCell}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold">${pctCell}</td>
+                    <td class="px-5 py-3 text-left  text-sm text-slate-500 max-w-xs truncate" title="${d.config.obs || ''}">${d.config.obs || '-'}</td>
+                    <td class="px-5 py-3 text-center text-sm text-slate-400">${d.config.obsDate || '-'}</td>
+                </tr>`;
+            }).join('');
         }
 
         function renderHealthBody() {
