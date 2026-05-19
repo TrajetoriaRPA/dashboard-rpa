@@ -164,6 +164,7 @@
 
         <!-- GERENCIAL -->
         <div id="view-gerencial" class="hidden space-y-8">
+            <!-- KPIs -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-brand-500 break-inside-avoid">
                     <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Receita Contratada</p>
@@ -182,54 +183,17 @@
                     <p class="mt-2 text-2xl font-semibold text-emerald-700" id="kpiRecorrente">R$ 0,00</p>
                 </div>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
-                    <h3 class="text-base font-semibold text-slate-800 mb-1">Rentabilidade por Projeto (R$)</h3>
-                    <p class="text-xs text-slate-400 mb-4">Vendido vs Custo consumido por projeto</p>
-                    <div class="h-64"><canvas id="chartFinancialProfitability"></canvas></div>
-                </div>
-                <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
-                    <h3 class="text-base font-semibold text-slate-800 mb-1">Evolução Financeira Acumulada</h3>
-                    <p class="text-xs text-slate-400 mb-4">Receita acumulada vs Custo acumulado por mês</p>
-                    <div class="h-64"><canvas id="chartFinancialBurndown"></canvas></div>
-                </div>
+            <!-- 1. Gráfico - Rentabilidade por Projeto -->
+            <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
+                <h3 class="text-base font-semibold text-slate-800 mb-1">Rentabilidade por Projeto (R$)</h3>
+                <p class="text-xs text-slate-400 mb-4">Vendido vs Custo consumido por projeto</p>
+                <div id="chartProfitabilityWrap"><canvas id="chartFinancialProfitability"></canvas></div>
             </div>
-            <!-- Tabela 1: Saúde Financeira -->
+            <!-- 2. Recorrências de Sustentação -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
-                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-slate-800">Saúde Financeira por Projeto</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Todos os projetos da planilha Config HTML · inclui projetos sem apontamentos na API</p>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Custo/h: R$ 195,00</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Budget (h)</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Vendido R$</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Horas Consumidas</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Custo de Projeto</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Margem R$</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">% Margem</th>
-                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Obs.</th>
-                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Atualização</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableFinancialHealth" class="bg-white divide-y divide-slate-200"></tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- Tabela 1b: Recorrências de Sustentação -->
-            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
-                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-base font-semibold text-slate-800">Recorrências de Sustentação</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Projetos com budget recorrente mensal — receita contratada, custo e margem acumulada</p>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Custo/h: R$ 195,00</span>
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h3 class="text-base font-semibold text-slate-800">Recorrências de Sustentação</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Projetos com budget recorrente mensal — receita contratada, custo e margem acumulada</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
@@ -250,22 +214,72 @@
                     </table>
                 </div>
             </div>
-            <!-- Tabela 2: Infra e Licenças -->
+            <!-- 3. Saúde Financeira por Projeto -->
             <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
                 <div class="px-6 py-4 border-b border-slate-200">
-                    <h3 class="text-base font-semibold text-slate-800">Infraestrutura e Licenças</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Tipo de infra, plataforma e receitas recorrentes por projeto</p>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-base font-semibold text-slate-800">Saúde Financeira por Projeto</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Todos os projetos da planilha Config HTML · inclui projetos sem apontamentos na API</p>
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">Custo/h: R$ 195,00</span>
+                            <div class="relative">
+                                <input type="text" id="healthFilterInput" oninput="filterHealthTable()" placeholder="Filtrar por projeto..." class="border border-slate-300 rounded-md pl-8 pr-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Projeto</th>
-                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Infra</th>
-                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase">Plataforma / Licença</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Rec. Licença/mês</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Rec. Infra/mês</th>
-                                <th class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase">Total Recorrente/mês</th>
+                                <th onclick="sortHealthCol('name')"   class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Projeto <span id="srt-health-name"   class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortHealthCol('budget')" class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Budget (h) <span id="srt-health-budget" class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortHealthCol('sold')"   class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Vendido R$ <span id="srt-health-sold"   class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortHealthCol('hours')"  class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Horas Consumidas <span id="srt-health-hours"  class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortHealthCol('cost')"   class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Custo de Projeto <span id="srt-health-cost"   class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortHealthCol('margem')" class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Margem R$ <span id="srt-health-margem" class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortHealthCol('pct')"    class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">% Margem <span id="srt-health-pct"    class="ml-1 opacity-40">↕</span></th>
+                                <th class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase">Obs.</th>
+                                <th class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase whitespace-nowrap">Atualização</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableFinancialHealth" class="bg-white divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 4. Gráfico - Evolução Financeira Acumulada -->
+            <div class="bg-white rounded-lg shadow-md p-6 break-inside-avoid">
+                <h3 class="text-base font-semibold text-slate-800 mb-1">Evolução Financeira Acumulada</h3>
+                <p class="text-xs text-slate-400 mb-4">Receita acumulada vs Custo acumulado por mês</p>
+                <div class="h-72"><canvas id="chartFinancialBurndown"></canvas></div>
+            </div>
+            <!-- 5. Infraestrutura e Licenças -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-base font-semibold text-slate-800">Infraestrutura e Licenças</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Tipo de infra, plataforma e receitas recorrentes por projeto</p>
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="infraFilterInput" oninput="filterInfraTable()" placeholder="Filtrar por projeto..." class="border border-slate-300 rounded-md pl-8 pr-3 py-1.5 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th onclick="sortInfraCol('name')"     class="px-5 py-3 text-left   text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Projeto <span id="srt-infra-name"     class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortInfraCol('infra')"    class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Infra <span id="srt-infra-infra"    class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortInfraCol('licenca')"  class="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Plataforma / Licença <span id="srt-infra-licenca"  class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortInfraCol('recLic')"   class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Rec. Licença/mês <span id="srt-infra-recLic"   class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortInfraCol('recInfra')" class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Rec. Infra/mês <span id="srt-infra-recInfra" class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortInfraCol('recTotal')" class="px-5 py-3 text-right  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Total Recorrente/mês <span id="srt-infra-recTotal" class="ml-1 opacity-40">↕</span></th>
                             </tr>
                         </thead>
                         <tbody id="tableInfraLicenca" class="bg-white divide-y divide-slate-200"></tbody>
@@ -948,26 +962,20 @@
                 </tr>`;
             }).join('');
 
-            document.getElementById('tableFinancialHealth').innerHTML = buildHealthRows(mainProjData, false);
-            document.getElementById('tableFinancialSust').innerHTML   = buildHealthRows(sustProjData, true);
+            // Store data for sort/filter (sort state preserved across data refreshes)
+            window._gerencialMainData = mainProjData;
+            window._gerencialProjData = projData;
+            if (!window._healthSort) window._healthSort = { col: null, dir: 1 };
+            if (!window._infraSort)  window._infraSort  = { col: null, dir: 1 };
 
-            // Tabela Infra e Licenças
-            document.getElementById('tableInfraLicenca').innerHTML = projData.filter(d => !isSustG(d.p)).map(d => {
-                const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
-                return `<tr class="hover:bg-slate-50">
-                    <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
-                    <td class="px-5 py-3 text-center text-sm text-slate-600">${d.config.infra || '-'}</td>
-                    <td class="px-5 py-3 text-center text-sm text-slate-600">${d.config.licenca || '-'}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.recLic > 0 ? formatCurrency(d.recLic) : '-'}</td>
-                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.recInfra > 0 ? formatCurrency(d.recInfra) : '-'}</td>
-                    <td class="px-5 py-3 text-right text-sm font-semibold text-emerald-700">${d.recTotal > 0 ? formatCurrency(d.recTotal) : '-'}</td>
-                </tr>`;
-            }).join('');
+            document.getElementById('tableFinancialSust').innerHTML = buildHealthRows(sustProjData, true);
+            renderHealthBody();
+            renderInfraBody();
 
             // Gráfico 1: Rentabilidade
             const chartLabels = projData.map(d => d.p.replace(/^RPA\s*-\s*/i, ''));
-            const barHeight   = Math.max(240, chartLabels.length * 36 + 80);
-            document.getElementById('chartFinancialProfitability').parentElement.style.height = barHeight + 'px';
+            const barHeight   = Math.max(300, chartLabels.length * 36 + 80);
+            document.getElementById('chartProfitabilityWrap').style.height = barHeight + 'px';
             renderChart('chartFinancialProfitability', 'bar', {
                 labels: chartLabels,
                 datasets: [
@@ -1013,6 +1021,95 @@
                 scales: {
                     x: { ticks: { font: { size: 10 } }, grid: { color: '#f1f5f9' } },
                     y: { ticks: { callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: '#f1f5f9' } }
+                }
+            });
+        }
+
+        function renderHealthBody() {
+            const allData = window._gerencialMainData || [];
+            const filter  = (document.getElementById('healthFilterInput')?.value || '').toLowerCase();
+            const { col, dir } = window._healthSort || { col: null, dir: 1 };
+            let data = filter ? allData.filter(d => d.p.toLowerCase().includes(filter)) : allData;
+            if (col) {
+                data = [...data].sort((a, b) => {
+                    if (col === 'name')   return dir * a.p.localeCompare(b.p);
+                    if (col === 'budget') return dir * (a.budget   - b.budget);
+                    if (col === 'sold')   return dir * (a.sold     - b.sold);
+                    if (col === 'hours')  return dir * (a.horasAll - b.horasAll);
+                    if (col === 'cost')   return dir * (a.cost     - b.cost);
+                    if (col === 'margem') return dir * (a.margem   - b.margem);
+                    if (col === 'pct')    return dir * (a.pctMargem - b.pctMargem);
+                    return 0;
+                });
+            }
+            document.getElementById('tableFinancialHealth').innerHTML = buildHealthRows(data, false);
+        }
+
+        function sortHealthCol(col) {
+            if (!window._healthSort) window._healthSort = { col: null, dir: 1 };
+            window._healthSort.dir = window._healthSort.col === col ? window._healthSort.dir * -1 : 1;
+            window._healthSort.col = col;
+            updateSortIndicators('health', col, window._healthSort.dir);
+            renderHealthBody();
+        }
+
+        function filterHealthTable() { renderHealthBody(); }
+
+        function renderInfraBody() {
+            const allData = window._gerencialProjData || [];
+            const filter  = (document.getElementById('infraFilterInput')?.value || '').toLowerCase();
+            const { col, dir } = window._infraSort || { col: null, dir: 1 };
+            let data = allData.filter(d => !d.p.toLowerCase().includes('sustenta') &&
+                                          (!filter || d.p.toLowerCase().includes(filter)));
+            if (col) {
+                data = [...data].sort((a, b) => {
+                    if (col === 'name')     return dir * a.p.localeCompare(b.p);
+                    if (col === 'infra')    return dir * (a.config.infra   || '').localeCompare(b.config.infra   || '');
+                    if (col === 'licenca')  return dir * (a.config.licenca || '').localeCompare(b.config.licenca || '');
+                    if (col === 'recLic')   return dir * (a.recLic   - b.recLic);
+                    if (col === 'recInfra') return dir * (a.recInfra - b.recInfra);
+                    if (col === 'recTotal') return dir * (a.recTotal - b.recTotal);
+                    return 0;
+                });
+            }
+            document.getElementById('tableInfraLicenca').innerHTML = data.map(d => {
+                const shortName = d.p.replace(/^RPA\s*-\s*/i, '');
+                return `<tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3 text-left text-sm font-medium text-slate-800">${shortName}</td>
+                    <td class="px-5 py-3 text-center text-sm text-slate-600">${d.config.infra || '-'}</td>
+                    <td class="px-5 py-3 text-center text-sm text-slate-600">${d.config.licenca || '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.recLic > 0 ? formatCurrency(d.recLic) : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm text-slate-600">${d.recInfra > 0 ? formatCurrency(d.recInfra) : '-'}</td>
+                    <td class="px-5 py-3 text-right text-sm font-semibold text-emerald-700">${d.recTotal > 0 ? formatCurrency(d.recTotal) : '-'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function sortInfraCol(col) {
+            if (!window._infraSort) window._infraSort = { col: null, dir: 1 };
+            window._infraSort.dir = window._infraSort.col === col ? window._infraSort.dir * -1 : 1;
+            window._infraSort.col = col;
+            updateSortIndicators('infra', col, window._infraSort.dir);
+            renderInfraBody();
+        }
+
+        function filterInfraTable() { renderInfraBody(); }
+
+        function updateSortIndicators(table, activeCol, dir) {
+            const cols = table === 'health'
+                ? ['name','budget','sold','hours','cost','margem','pct']
+                : ['name','infra','licenca','recLic','recInfra','recTotal'];
+            cols.forEach(c => {
+                const el = document.getElementById(`srt-${table}-${c}`);
+                if (!el) return;
+                if (c === activeCol) {
+                    el.textContent = dir === 1 ? '↑' : '↓';
+                    el.classList.remove('opacity-40');
+                    el.classList.add('text-brand-500');
+                } else {
+                    el.textContent = '↕';
+                    el.classList.add('opacity-40');
+                    el.classList.remove('text-brand-500');
                 }
             });
         }
