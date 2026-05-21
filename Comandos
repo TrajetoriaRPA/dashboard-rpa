@@ -1,0 +1,8 @@
+Comando para abrir a tela de visualização de edição antes de comitar.
+
+npx serve . 
+
+git add .
+git commit
+git push
+git pull

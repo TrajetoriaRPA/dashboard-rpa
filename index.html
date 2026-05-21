@@ -90,7 +90,7 @@
 
         <!-- Abas -->
         <div class="border-b border-slate-200 mb-8 no-print">
-            <nav class="-mb-px flex space-x-8">
+            <nav class="-mb-px flex justify-center space-x-8">
                 <button onclick="switchTab('operacional')" id="tab-operacional" class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2">
                     <i data-lucide="activity" class="w-4 h-4"></i> Visão Operacional
                 </button>
@@ -138,19 +138,19 @@
             </div>
             <div class="bg-white rounded-lg shadow-md overflow-hidden break-inside-avoid">
                 <div class="px-6 py-4 border-b border-slate-200 space-y-3">
-                    <h3 class="text-base font-semibold text-slate-800">Acompanhamento de Saldo por Projeto</h3>
+                    <h3 class="text-base font-semibold text-slate-800">Acompanhamento de Saldo de horas por Projeto Ativo</h3>
                     <div id="opProjectFilter" class="flex flex-wrap gap-2 items-center"></div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Projeto</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Contratado</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Consumido Total</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Horas no Período</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Saldo</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Observação</th>
+                                <th onclick="sortOpCol('projeto')"  class="px-6 py-3 text-left  text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Projeto <span id="srt-op-projeto"  class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortOpCol('budget')"   class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Contratado <span id="srt-op-budget"   class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortOpCol('consumed')" class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Consumido Total <span id="srt-op-consumed" class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortOpCol('period')"   class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Horas no Período <span id="srt-op-period"   class="ml-1 opacity-40">↕</span></th>
+                                <th onclick="sortOpCol('balance')"  class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase cursor-pointer select-none hover:bg-slate-100 whitespace-nowrap">Saldo <span id="srt-op-balance"  class="ml-1 opacity-40">↕</span></th>
+                                <th class="px-6 py-3 text-left  text-xs font-medium text-slate-500 uppercase">Observação</th>
                                 <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">Status</th>
                             </tr>
                         </thead>
@@ -519,9 +519,15 @@
                 return passStart && passEnd;
             });
 
-            renderOperacional();
-            renderGerencial();
-            renderProdutividade();
+            const active = getActiveTab();
+            if (active === 'operacional')   renderOperacional();
+            else if (active === 'gerencial')     renderGerencial();
+            else if (active === 'produtividade') renderProdutividade();
+        }
+
+        function getActiveTab() {
+            const el = document.querySelector('[id^="tab-"].tab-active');
+            return el ? el.id.replace('tab-', '') : 'operacional';
         }
 
         function renderOperacional() {
@@ -588,30 +594,21 @@
             });
 
             let projLabels = [], budgetData = [], consumedData = [];
+            window._opAdmHtml  = tbodyHtml;
+            window._opTableData = [];
+            if (!window._opSort) window._opSort = { col: null, dir: 1 };
             selectedProjects.forEach(p => {
-                const config  = state.projectConfigs[p] || {};
-                const budget  = parseFloat(config.budgetHours || 0);
+                const config   = state.projectConfigs[p] || {};
+                const budget   = parseFloat(config.budgetHours || 0);
                 const consumed = consumedTotal[p] || 0;
                 const period   = periodHours[p]   || 0;
                 const balance  = budget - consumed;
-                const statusHtml = balance < 0
-                    ? '<span class="bg-red-100 text-red-800 px-2 rounded-full text-[10px]">ESTOURADO</span>'
-                    : '<span class="bg-green-100 text-green-800 px-2 rounded-full text-[10px]">OK</span>';
-                tbodyHtml += `
-                    <tr>
-                        <td class="px-6 py-4 text-sm font-medium text-slate-900">${p}</td>
-                        <td class="px-6 py-4 text-right text-sm">${budget.toFixed(1)}h</td>
-                        <td class="px-6 py-4 text-right text-sm font-bold">${consumed.toFixed(1)}h</td>
-                        <td class="px-6 py-4 text-right text-sm text-brand-500 font-medium">${period.toFixed(1)}h</td>
-                        <td class="px-6 py-4 text-right text-sm ${balance < 0 ? 'text-red-600 font-bold' : ''}">${balance.toFixed(1)}h</td>
-                        <td class="px-6 py-4 text-xs text-slate-500 italic max-w-xs truncate">${config.obs || '-'}<br><span class="text-[9px] opacity-60">${config.obsDate || ''}</span></td>
-                        <td class="px-6 py-4 text-center">${statusHtml}</td>
-                    </tr>`;
+                window._opTableData.push({ p, config, budget, consumed, period, balance });
                 projLabels.push(p.replace('RPA - ', ''));
                 budgetData.push(budget);
                 consumedData.push(consumed);
             });
-            tbody.innerHTML = tbodyHtml;
+            renderOpTableBody();
 
             // Gráfico horizontal (projetos principais selecionados)
             renderChart('chartProjectHours', 'bar', {
@@ -866,6 +863,46 @@
             if (arrow) arrow.textContent = isHidden ? '▼' : '▶';
         }
 
+        function renderOpTableBody() {
+            const tbody = document.getElementById('tableBudgetBody');
+            if (!tbody) return;
+            const { col, dir } = window._opSort || { col: null, dir: 1 };
+            let data = [...(window._opTableData || [])];
+            if (col) {
+                data.sort((a, b) => {
+                    if (col === 'projeto')  return dir * a.p.localeCompare(b.p);
+                    if (col === 'budget')   return dir * (a.budget   - b.budget);
+                    if (col === 'consumed') return dir * (a.consumed - b.consumed);
+                    if (col === 'period')   return dir * (a.period   - b.period);
+                    if (col === 'balance')  return dir * (a.balance  - b.balance);
+                    return 0;
+                });
+            }
+            const mainHtml = data.map(({ p, config, budget, consumed, period, balance }) => {
+                const statusHtml = balance < 0
+                    ? '<span class="bg-red-100 text-red-800 px-2 rounded-full text-[10px]">ESTOURADO</span>'
+                    : '<span class="bg-green-100 text-green-800 px-2 rounded-full text-[10px]">OK</span>';
+                return `<tr>
+                    <td class="px-6 py-4 text-sm font-medium text-slate-900">${p}</td>
+                    <td class="px-6 py-4 text-right text-sm">${budget.toFixed(1)}h</td>
+                    <td class="px-6 py-4 text-right text-sm font-bold">${consumed.toFixed(1)}h</td>
+                    <td class="px-6 py-4 text-right text-sm text-brand-500 font-medium">${period.toFixed(1)}h</td>
+                    <td class="px-6 py-4 text-right text-sm ${balance < 0 ? 'text-red-600 font-bold' : ''}">${balance.toFixed(1)}h</td>
+                    <td class="px-6 py-4 text-xs text-slate-500 italic max-w-xs truncate">${config.obs || '-'}<br><span class="text-[9px] opacity-60">${config.obsDate || ''}</span></td>
+                    <td class="px-6 py-4 text-center">${statusHtml}</td>
+                </tr>`;
+            }).join('');
+            tbody.innerHTML = (window._opAdmHtml || '') + mainHtml;
+        }
+
+        function sortOpCol(col) {
+            if (!window._opSort) window._opSort = { col: null, dir: 1 };
+            window._opSort.dir = window._opSort.col === col ? window._opSort.dir * -1 : 1;
+            window._opSort.col = col;
+            updateSortIndicators('op', col, window._opSort.dir);
+            renderOpTableBody();
+        }
+
         function renderGerencial() {
             const isAdmG  = p => p.toLowerCase().includes('administrativ');
             const isSustG = p => p.toLowerCase().includes('sustenta');
@@ -1101,6 +1138,8 @@
         function updateSortIndicators(table, activeCol, dir) {
             const cols = table === 'health'
                 ? ['name','budget','sold','hours','cost','margem','pct']
+                : table === 'op'
+                ? ['projeto','budget','consumed','period','balance']
                 : ['name','infra','licenca','recLic','recInfra','recTotal'];
             cols.forEach(c => {
                 const el = document.getElementById(`srt-${table}-${c}`);
@@ -1134,7 +1173,17 @@
 
             const devNotes = JSON.parse(localStorage.getItem('dash_dev_notes') || '{}');
 
-            state.developers.forEach(dev => {
+            // Se nenhum desenvolvedor foi configurado manualmente, detecta pelos usuários da planilha
+            const effectiveDevs = state.developers.length > 0
+                ? state.developers
+                : [...new Set(state.filteredRows.map(r => r.usuario).filter(Boolean))].sort();
+
+            if (effectiveDevs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-sm text-slate-400 italic">Nenhum dado de usuário encontrado nos apontamentos do período.</td></tr>`;
+                return;
+            }
+
+            effectiveDevs.forEach(dev => {
                 // Período filtrado: usado para KPIs, pizza e tabela
                 const devRows = state.filteredRows.filter(r =>
                     r.usuario.toLowerCase().includes(dev.toLowerCase()) ||
@@ -1329,6 +1378,11 @@
             });
             document.getElementById(`view-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-${tab}`).className = 'tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2';
+            if (state.rawRows.length > 0) {
+                if (tab === 'operacional')   renderOperacional();
+                else if (tab === 'gerencial')     renderGerencial();
+                else if (tab === 'produtividade') renderProdutividade();
+            }
         }
 
         function switchConfigTab(tab) {
@@ -1393,14 +1447,20 @@
             if (name) { state.developers.push(name); document.getElementById('newDevName').value = ''; renderDevListInModal(); }
         }
 
-        // Gera e baixa PDF a partir de um elemento já renderizado no DOM
+        // Gera e baixa PDF a partir de um elemento já renderizado no DOM.
+        // Usa as dimensões reais do elemento para criar uma única página sem cortes.
         async function generatePdf(element, filename) {
+            const margin = 5;
+            const px2mm  = 25.4 / 96;
+            const w = element.scrollWidth  * px2mm + margin * 2;
+            const h = element.scrollHeight * px2mm + margin * 2;
             await html2pdf().set({
-                margin: 5,
+                margin,
                 filename,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: -window.scrollY },
-                jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+                html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: [w, h], orientation: w > h ? 'landscape' : 'portrait' },
+                pagebreak: { mode: [] }
             }).from(element).save();
         }
 
@@ -1477,48 +1537,57 @@
             const origBtnHtml = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.textContent = 'Gerando...'; }
 
-            try {
-                block.scrollIntoView({ behavior: 'instant', block: 'nearest' });
-                await new Promise(r => setTimeout(r, 250));
+            showExportOverlay(`Gerando PDF: ${devName}...`);
 
-                const toHide = [...block.querySelectorAll('select, .dev-dl-btn')];
-                toHide.forEach(el => { el.style.visibility = 'hidden'; });
+            let wrapper = null;
+            try {
+                // Cria clone fora do viewport para captura limpa, sem interferência de scroll
+                wrapper = document.createElement('div');
+                wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:1400px;background:white;overflow:visible;z-index:-1;';
+                document.body.appendChild(wrapper);
+
+                const clone = block.cloneNode(true);
+                clone.style.cssText += 'overflow:visible;border-radius:8px;';
+                wrapper.appendChild(clone);
+
+                // Oculta elementos interativos no clone
+                clone.querySelectorAll('select, .dev-dl-btn').forEach(el => { el.style.display = 'none'; });
+
+                // Copia pixels dos canvas Chart.js do original para o clone antes de html2canvas rodar
+                const origCanvases  = Array.from(block.querySelectorAll('canvas'));
+                const cloneCanvases = Array.from(clone.querySelectorAll('canvas'));
+                origCanvases.forEach((orig, i) => {
+                    const cloned = cloneCanvases[i];
+                    if (!cloned) return;
+                    cloned.width  = orig.width;
+                    cloned.height = orig.height;
+                    cloned.getContext('2d').drawImage(orig, 0, 0);
+                });
+
+                // Aguarda layout estável do clone antes de medir e capturar
+                await new Promise(r => setTimeout(r, 150));
+
+                const margin = 5;
+                const px2mm  = 25.4 / 96;
+                const w = clone.scrollWidth  * px2mm + margin * 2;
+                const h = clone.scrollHeight * px2mm + margin * 2;
 
                 await html2pdf().set({
-                    margin: 5,
+                    margin,
                     filename,
                     image: { type: 'jpeg', quality: 0.95 },
-                    html2canvas: {
-                        scale: 1.5,
-                        useCORS: true,
-                        logging: false,
-                        scrollX: -window.scrollX,
-                        scrollY: -window.scrollY,
-                        onclone: function(clonedDoc) {
-                            // html2canvas clona o DOM antes de renderizar — canvas clonados ficam sempre vazios.
-                            // Copia os pixels dos canvas originais (Chart.js) para os clones via drawImage.
-                            const clonedBlock  = clonedDoc.querySelector(`[data-dev-id="${devId}"]`);
-                            if (!clonedBlock) return;
-                            const origList   = Array.from(block.querySelectorAll('canvas'));
-                            const cloneList  = Array.from(clonedBlock.querySelectorAll('canvas'));
-                            origList.forEach((orig, i) => {
-                                const cloned = cloneList[i];
-                                if (!cloned) return;
-                                cloned.width  = orig.width;
-                                cloned.height = orig.height;
-                                cloned.getContext('2d').drawImage(orig, 0, 0);
-                            });
-                        }
-                    },
-                    jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
-                }).from(block).save();
+                    html2canvas: { scale: 1.5, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: [w, h], orientation: w > h ? 'landscape' : 'portrait' },
+                    pagebreak: { mode: [] }
+                }).from(clone).save();
 
-                toHide.forEach(el => { el.style.visibility = ''; });
             } catch (e) {
                 console.error('Erro ao gerar PDF:', e);
                 alert('Não foi possível gerar o PDF. Verifique o console (F12).');
             } finally {
+                if (wrapper) wrapper.remove();
                 if (btn) { btn.disabled = false; btn.innerHTML = origBtnHtml; lucide.createIcons(); }
+                hideExportOverlay();
             }
         }
 
